@@ -1,0 +1,7 @@
+#### Cose da fare ####
+
+Fabiano:
+    Document processing:
+    INPUT: data collection  lista di: <docno>\t<text>\n
+    OUTPUT: data collection processata nel formato lista di: <docno>\t<term1 term2 term3...termN>\n
+        -> cose delle specifiche
