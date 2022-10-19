@@ -2,6 +2,14 @@
 
 Fabiano:
     Document processing:
-    INPUT: data collection  lista di: <docno>\t<text>\n
-    OUTPUT: data collection processata nel formato lista di: <docno>\t<term1 term2 term3...termN>\n
-        -> cose delle specifiche
+        INPUT: data collection as a list of: <docno>\t<text>\n
+        OUTPUT: data collection processed in the format: list of <docno>\t<term1 term2 term3...termN>\n
+            -> You must read the data using UNICODE instead of basic ASCII.
+            -> Deal with raw form with various errors (empty page, malformed lines, malformed characters).
+            -> Remove the punctuation signs.
+            -> Stemming e stopword removal (OPTIONAL).
+
+Ema:
+    Inverted index:
+        INPUT: list of <docno>\t<term1 term2 term3...termN>\n
+        OUTPUT: file dell'inverted index
