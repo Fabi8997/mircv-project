@@ -12,5 +12,8 @@ Fabiano:
 Ema:
     Inverted index:
         INPUT: list of <docno>\t<term1 term2 term3...termN>\n
-        OUTPUT: files containing the inverted index data structures
-            ->
+        OUTPUT: files containing the inverted index data structures (INVERTED INDEX, LEXICON, DOCUMENT TABLE)
+            -> Parsing docs (Maybe it's the document processiong part(?))
+            -> Generate intermediate posting lists and writing unsorted or partially sorted
+            -> Sort or merge the posting
+            -> Reformat the sorted posting into the final structure
