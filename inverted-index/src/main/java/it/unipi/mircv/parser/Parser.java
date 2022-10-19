@@ -1,5 +1,7 @@
 package it.unipi.mircv.parser;
 
+import opennlp.tools.stemmer.PorterStemmer;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -80,6 +82,9 @@ public class Parser {
         //Remove stop words
         text = removeStopWords(text, stopwords);
 
+        //Stemming
+        text = getStems(text);
+
         stringBuilder.append(text);
 
         return stringBuilder.toString();
@@ -94,14 +99,23 @@ public class Parser {
     }
 
     private static String removeStopWords(String text, List<String> stopwords){
-        ArrayList<String> words = Stream.of(text.split(" ")).collect(Collectors.toCollection(ArrayList<String>::new));
+        ArrayList<String> words = Stream.of(text.split(" "))
+                .collect(Collectors.toCollection(ArrayList<String>::new));
         words.removeAll(stopwords);
+        return String.join(" ", words);
+    }
+
+    private static String getStems(String text){
+        PorterStemmer porterStemmer = new PorterStemmer();
+        ArrayList<String> words = Stream.of(text.split(" "))
+                .map(porterStemmer::stem)
+                .collect(Collectors.toCollection(ArrayList<String>::new));
         return String.join(" ", words);
     }
 
     public static void main(String[] args) {
         //TEST parseCollection
-        //System.out.println(Parser.parseCollection("src/main/resources/dataset/sample.tsv", true));
-        //Parser.parseCollection("src/main/resources/dataset/sample.tsv");
+        //System.out.println(Parser.parseCollection("src/main/resources/dataset/sample.tsv", false));
+        System.out.println(Parser.parseCollection("src/main/resources/dataset/sample.tsv", true));
     }
 }
