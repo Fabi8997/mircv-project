@@ -12,4 +12,5 @@ Fabiano:
 Ema:
     Inverted index:
         INPUT: list of <docno>\t<term1 term2 term3...termN>\n
-        OUTPUT: file dell'inverted index
+        OUTPUT: files containing the inverted index data structures
+            ->
