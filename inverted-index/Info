@@ -22,3 +22,30 @@ Ema:
             -> Generate intermediate posting lists and writing unsorted or partially sorted
             -> Sort or merge the posting
             -> Reformat the sorted posting into the final structure
+
+We must compute not a single document, but blocks of documents, in particular we must read N lines from the collection,
+these N lines forms a block, so we will have (# OF DOCS)\N blocks, for each block we must create:
+- A dictionary with: K = term, V = term_id
+- An inverted index
+-- It must not be sorted, just accumulation of posting in the posting lists (The merge phase will do it)
+-- The posting must contain: term_id\tposting1 posting2 ... postingN where posting = doc_id,frequency
+-- One file must contain the doc_id list and another the respective freq
+- Document index, while we process the document, we must compute the size of the document
+
+-------- SPIMI ALGORITHM ------
+
+SPIMI-INVERT(token_stream) token_stream is obtained during the parsing of the document
+    output_file = NEWFILE()
+    dictionary = NEWHASH()
+    while(free_memory_available)
+    do token <- next(token_stream)
+        if term(token) not in dictionary
+            then posting_list = ADDTODICTIONARY(dictionary, term(token))
+        else posting_list = GETPOSTINGSLIST(dictionary, term(token))
+        if full(posting_list)
+            then posting_list = DOUBLEPOSTINGSLIST(dictionary, term(token))
+        ADDTOPOSTINGLIST(posting_list, docID(token))
+    sorted_terms <- SORTTERMS(dictionary)
+    WRITEBLOCKTODISK(sorted_terms, dictionary, output file)
+
+MERGE ALL BLOCKS

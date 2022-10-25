@@ -1,14 +1,6 @@
 package it.unipi.mircv.parser;
 
 import opennlp.tools.stemmer.PorterStemmer;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
-
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -17,101 +9,15 @@ import java.util.stream.Stream;
 
 public class Parser {
 
-    static String COLLECTION_PATH = "src/main/resources/dataset/samplecompressed.tar.gz";
-
     /**
-     * Parse the collection tokenizing each document and saving it in the  format: doc id text_tokenized
-     * @param path Path of the archive containing the collection, must be a tar.gz archive
-     * @param stopwordsRemovalAndStemming true to apply the stopwords removal and stemming procedure, false otherwise
-     * @return The collection parsed into a string
-     */
-    private static String parseCollection(String path, Boolean stopwordsRemovalAndStemming){
-
-        //Path of the collection to be read
-        File file = new File(path);
-
-        //List of strings that will contain the stopwords for the stopwords removal procedure
-        List<String> stopwords = null;
-
-        //Object used to manipulate and build strings
-        StringBuilder stringBuffer = new StringBuilder();
-
-        //If the stopwords removal and the stemming is requested, the stopwords are read from a file
-        if(stopwordsRemovalAndStemming) {
-            try {
-                stopwords = Files.readAllLines(Paths.get("src/main/resources/utility/stopwords-en.txt"));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        //Try to open the collection provided
-        try (FileInputStream fileInputStream = new FileInputStream(file)) {
-
-            //Create an input stream for the tar archive
-            TarArchiveInputStream tarInput = new TarArchiveInputStream(new GzipCompressorInputStream(fileInputStream));
-
-            //Get the first file from the stream, that is only one
-            TarArchiveEntry currentEntry = tarInput.getNextTarEntry();
-
-            //If the file exist
-            if(currentEntry != null) {
-
-                //Read the uncompressed tar file specifying UTF-8 as encoding
-                InputStreamReader inputStreamReader = new InputStreamReader(tarInput, StandardCharsets.UTF_8);
-
-                //Create a BufferedReader in order to access one line of the file at a time
-                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-
-                //Variable to keep the current line read from the buffer
-                String line;
-
-                //Iterate over the lines
-                while ((line = bufferedReader.readLine()) != null) {
-
-                    //String to keep the current document processed
-                    String processedDocument;
-
-                    //Check it the stopwords removal and stemming are requested
-                    if (stopwordsRemovalAndStemming) {
-
-                        //Process the document using the stemming and stopwords removal
-                        processedDocument = processDocument(line, true, true, stopwords);
-                    } else {
-
-                        //Process the document without the stemming and stopwords removal
-                        processedDocument = processDocument(line, false, false, null);
-                    }
-
-                    //If the parsing of the document was completed correctly, it'll be appended to the collection buffer
-                    if (processedDocument!= null && !processedDocument.isEmpty()) {
-
-                        //Put each document in a different line: <doc id>\t<tokens>
-                        stringBuffer.append(processedDocument);
-                        stringBuffer.append('\n');
-                    }
-                }
-            }
-
-            //Close the input stream
-            fileInputStream.close();
-
-            //Return the parsed collection
-            return stringBuffer.toString();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Parse the collection tokenizing each document in the format: doc_id text_tokenized
+     * Parse the document tokenizing each document in the format: doc_id text_tokenized
      * @param line String containing a document of the collection in the format: [doc_id]\t[text]\n
      * @param stopwordsRemoval True to perform the stopwords removal, otherwise must be False
      * @param stemming True to perform the stemming, otherwise must be False
      * @param stopwords List of strings containing the stopwords, it's Null if stopwordsRemoval is false
      * @return Document tokenized in the format: [doc_id]\t[token1 token2 ... tokenN]\n
      */
-    private static String processDocument(String line, boolean stopwordsRemoval, boolean stemming, List<String> stopwords){
+    public static String processDocument(String line, boolean stopwordsRemoval, boolean stemming, List<String> stopwords){
         //Utility variables to keep the current docno and text
         String docno;
         String text;
@@ -210,6 +116,5 @@ public class Parser {
     public static void main(String[] args) {
         //TEST parseCollection
         //System.out.println(Parser.parseCollection("src/main/resources/dataset/sample.tsv", false));
-        System.out.println(Parser.parseCollection(COLLECTION_PATH, Boolean.valueOf(args[1])));
     }
 }
