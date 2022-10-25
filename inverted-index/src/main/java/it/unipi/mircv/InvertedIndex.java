@@ -9,6 +9,8 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class InvertedIndex {
@@ -95,6 +97,19 @@ public class InvertedIndex {
                     if (processedDocument!= null && !processedDocument.isEmpty()) {
 
                         // TODO: 25/10/2022 Implement here the SPIMI algorithm
+
+                        //Map for the block's lexicon: K = term, V = term_id
+                        HashMap<String, Integer > blockLexicon;
+
+                        //Map for block's inverted index, K = term_id, V = Posting_list, Posting ( K = doc_id, V = freq)
+                        HashMap<Integer, ArrayList<Posting>> blockInvertedIndex;
+                        //OR
+                        //HashMap<Integer, HashMap<Integer, Integer>> blockInvertedIndex;
+
+                        // TODO: 25/10/2022
+
+
+
                         //Put each document in a different line: <doc id>\t<tokens>
                         stringBuffer.append(processedDocument);
                         stringBuffer.append('\n');
