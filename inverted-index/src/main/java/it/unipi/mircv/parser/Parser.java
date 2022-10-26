@@ -47,6 +47,8 @@ public class Parser {
         //Build the first part: [docno]\t
         stringBuilder.append(docno).append("\t");
 
+        // TODO: 26/10/2022 Fare tre metodi per gestire in un unico stream
+
         //Remove punctuation
         text = removePunctuation(text);
 
@@ -101,7 +103,7 @@ public class Parser {
         //Instance of a porter stemmer
         PorterStemmer porterStemmer = new PorterStemmer();
 
-        //Create an array list of stems by computing different phases from a stream of tokens:ù
+        //Create an array list of stems by computing different phases from a stream of tokens:
         //  The stream is obtained by splitting the text using the whitespace as delimiter;
         //  It's used a map stage where each word is stemmed
         //  The overall result is collected into an ArrayList of strings

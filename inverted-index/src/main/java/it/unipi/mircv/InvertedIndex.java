@@ -37,6 +37,7 @@ public class InvertedIndex {
         //List of strings that will contain the stopwords for the stopwords removal procedure
         List<String> stopwords = null;
 
+        // TODO: 26/10/2022 check type 
         //Object used to manipulate and build strings
         StringBuilder stringBuffer = new StringBuilder();
 
@@ -61,6 +62,7 @@ public class InvertedIndex {
             //If the file exist
             if(currentEntry != null) {
 
+                // TODO: 26/10/2022 Check utf-8 
                 //Read the uncompressed tar file specifying UTF-8 as encoding
                 InputStreamReader inputStreamReader = new InputStreamReader(tarInput, StandardCharsets.UTF_8);
 
@@ -149,6 +151,6 @@ public class InvertedIndex {
     }
 
     public static void main(String[] args){
-        parseCollection(COLLECTION_PATH, 15, false);
+        parseCollection(COLLECTION_PATH, 15, true);
     }
 }
