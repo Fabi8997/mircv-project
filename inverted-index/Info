@@ -49,3 +49,60 @@ SPIMI-INVERT(token_stream) token_stream is obtained during the parsing of the do
     WRITEBLOCKTODISK(sorted_terms, dictionary, output file)
 
 MERGE ALL BLOCKS
+
+
+0 SBA NSA KSA IOE
+1 MDOQW MO MO O
+2 ABC DA DAS Q
+3 DOMASK  DSA ABC
+4 ABC DASJK KK
+5 KMD ABC KDAS
+
+LEXICON:
+SBA 1
+NSA 2
+KSA 3
+IOE 4
+ABC 5
+
+
+FILE BLOCK A
+1   0
+2   0
+5   2 3 4 5
+
+BLOCK B
+
+6 7 8 9 10
+
+LEXICON B:
+ABC 3
+FILE BLOCK B
+
+3 8 9 10
+
+2 3 4 5 8 9 10
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
