@@ -16,5 +16,13 @@ public class Posting {
     public Integer getFrequency() {
         return frequency;
     }
+
+    @Override
+    public String toString() {
+        return "Posting{" +
+                "doc_id=" + doc_id +
+                ", frequency=" + frequency +
+                '}';
+    }
 }
 

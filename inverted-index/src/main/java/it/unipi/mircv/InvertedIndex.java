@@ -9,8 +9,6 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 public class InvertedIndex {
@@ -18,7 +16,7 @@ public class InvertedIndex {
     static String COLLECTION_PATH = "src/main/resources/dataset/samplecompressed.tar.gz";
 
 
-    // TODO: 25/10/2022 ParseColletion must read N lines, then it must write the partial indexes obtained parsing these
+    // TODO: 25/10/2022 ParseCollection must read N lines, then it must write the partial indexes obtained parsing these
     // TODO: 25/10/2022 lines into a partial file in the disc -> e.g. read 10 lines, build the inverted index for each  
     // TODO: 25/10/2022 line using a tmp accumulator (probably an hashmap) then write the partial sorted inverted index 
     // TODO: 25/10/2022 in a file, then when all the files are created it must be performed the merge of these files
@@ -62,7 +60,7 @@ public class InvertedIndex {
             //If the file exist
             if(currentEntry != null) {
 
-                // TODO: 26/10/2022 Check utf-8 
+                // TODO: 26/10/2022 Check utf-8
                 //Read the uncompressed tar file specifying UTF-8 as encoding
                 InputStreamReader inputStreamReader = new InputStreamReader(tarInput, StandardCharsets.UTF_8);
 
@@ -78,8 +76,13 @@ public class InvertedIndex {
                 //Counter to keep the number of lines currently read
                 int linesRead = 0;
 
+                //IndexBuilder used to build the inverted index for each block
+                IndexBuilder indexBuilder = new IndexBuilder();
+
                 //Iterate over the lines
                 while ((line = bufferedReader.readLine()) != null ) {
+
+                    // TODO: 26/10/2022 DEAL WITH THE WHITESPACE THAT MUST NOT BE PRESENT IN THE LEXICON!
 
                     //String to keep the current document processed
                     String processedDocument;
@@ -100,41 +103,39 @@ public class InvertedIndex {
 
                         // TODO: 25/10/2022 Implement here the SPIMI algorithm
 
-                        //Map for the block's lexicon: K = term, V = term_id
-                        HashMap<String, Integer > blockLexicon;
-
-                        //Map for block's inverted index, K = term_id, V = Posting_list, Posting ( K = doc_id, V = freq)
-                        HashMap<Integer, ArrayList<Posting>> blockInvertedIndex;
-                        //OR
-                        //HashMap<Integer, HashMap<Integer, Integer>> blockInvertedIndex;
-
-                        // TODO: 25/10/2022
-
-
-
-                        //Put each document in a different line: <doc id>\t<tokens>
-                        stringBuffer.append(processedDocument);
-                        stringBuffer.append('\n');
-
+                        //Insert the document in the block's data structures (Lexicon and inverted index)
+                        indexBuilder.insertDocument(processedDocument);
 
                         linesRead++;
 
                         //If we have all the lines to build a block, it will be built
                         if(linesRead == blockSize){
-                            // TODO: 25/10/2022 Here we've to write the stringBuffer into a file
                             System.out.println("Block "+blockNumber+" written");
                             linesRead = 0;
                             blockNumber++;
-                            System.out.println(stringBuffer);
+
+                            // TODO: 25/10/2022 Here we've to write the lexicon and inverted index into a file
+                            System.out.println(indexBuilder.getLexicon());
+                            String[] invertedIndexStrings = indexBuilder.getInvertedIndex();
+                            System.out.println(invertedIndexStrings[0] + "\n\n" + invertedIndexStrings[1]);
+
+                            //Clear the data structures
+                            indexBuilder.clear();
                             stringBuffer.delete(0,stringBuffer.length());
                         }
                     }
                 }
                 //Last block that have a size in the range [1, N]
                 if(linesRead > 0){
-                    // TODO: 25/10/2022 Here we've to write the stringBuffer into a file
                     System.out.println("Block "+blockNumber+" written");
-                    System.out.println(stringBuffer);
+
+                    // TODO: 25/10/2022 Here we've to write the lexicon and inverted index into a file
+                    System.out.println(indexBuilder.getLexicon());
+                    String[] invertedIndexStrings = indexBuilder.getInvertedIndex();
+                    System.out.println(invertedIndexStrings[0] + "\n\n" + invertedIndexStrings[1]);
+
+                    //Clear the data structures
+                    indexBuilder.clear();
                     stringBuffer.delete(0,stringBuffer.length());
                 }
             }
@@ -151,6 +152,6 @@ public class InvertedIndex {
     }
 
     public static void main(String[] args){
-        parseCollection(COLLECTION_PATH, 15, true);
+        parseCollection(COLLECTION_PATH, 100, false);
     }
 }

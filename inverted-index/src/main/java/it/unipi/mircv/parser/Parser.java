@@ -47,7 +47,7 @@ public class Parser {
         //Build the first part: [docno]\t
         stringBuilder.append(docno).append("\t");
 
-        // TODO: 26/10/2022 Fare tre metodi per gestire in un unico stream
+        // TODO: 26/10/2022 Fare tre metodi per gestire in un unico stream (Forse non si può)!!!
 
         //Remove punctuation
         text = removePunctuation(text);
