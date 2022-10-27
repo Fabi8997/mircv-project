@@ -148,6 +148,6 @@ public class InvertedIndex {
     }
 
     public static void main(String[] args){
-        parseCollection(COLLECTION_PATH, 10, false);
+        parseCollection(COLLECTION_PATH, Integer.parseInt(args[0]), Boolean.valueOf(args[1]));
     }
 }
