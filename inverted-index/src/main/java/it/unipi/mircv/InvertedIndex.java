@@ -25,19 +25,14 @@ public class InvertedIndex {
      * @param path Path of the archive containing the collection, must be a tar.gz archive
      * @param blockSize Size of the block to be read, that is the number of lines for each chunk of input document
      * @param stopwordsRemovalAndStemming true to apply the stopwords removal and stemming procedure, false otherwise
-     * @return The inverted index
      */
-    private static String parseCollection(String path, int blockSize, Boolean stopwordsRemovalAndStemming){
+    private static void parseCollection(String path, int blockSize, Boolean stopwordsRemovalAndStemming){
 
         //Path of the collection to be read
         File file = new File(path);
 
         //List of strings that will contain the stopwords for the stopwords removal procedure
         List<String> stopwords = null;
-
-        // TODO: 26/10/2022 check type 
-        //Object used to manipulate and build strings
-        StringBuilder stringBuffer = new StringBuilder();
 
         //If the stopwords removal and the stemming is requested, the stopwords are read from a file
         if(stopwordsRemovalAndStemming) {
@@ -101,8 +96,6 @@ public class InvertedIndex {
                     //If the parsing of the document was completed correctly, it'll be appended to the collection buffer
                     if (processedDocument!= null && !processedDocument.isEmpty()) {
 
-                        // TODO: 25/10/2022 Implement here the SPIMI algorithm
-
                         //Insert the document in the block's data structures (Lexicon and inverted index)
                         indexBuilder.insertDocument(processedDocument);
 
@@ -110,48 +103,51 @@ public class InvertedIndex {
 
                         //If we have all the lines to build a block, it will be built
                         if(linesRead == blockSize){
-                            System.out.println("Block "+blockNumber+" written");
-                            linesRead = 0;
-                            blockNumber++;
 
-                            // TODO: 25/10/2022 Here we've to write the lexicon and inverted index into a file
-                            System.out.println(indexBuilder.getLexicon());
-                            String[] invertedIndexStrings = indexBuilder.getInvertedIndex();
-                            System.out.println(invertedIndexStrings[0] + "\n\n" + invertedIndexStrings[1]);
+                            //Write the block's lexicon into the given file
+                            indexBuilder.writeLexiconToFile("src/main/resources/files/lexiconBlock"+blockNumber+".txt");
+
+                            //Write the inverted index's files into the block's files
+                            indexBuilder.writeInvertedIndexToFile(
+                                    "src/main/resources/files/invertedIndexDocIds"+blockNumber+".txt",
+                                    "src/main/resources/files/invertedIndexFrequencies"+blockNumber+".txt");
+
+                            System.out.println("Block "+blockNumber+" written");
+
+                            //Reset the number of lines read
+                            linesRead = 0;
+
+                            //Increment the id of the next block
+                            blockNumber++;
 
                             //Clear the data structures
                             indexBuilder.clear();
-                            stringBuffer.delete(0,stringBuffer.length());
                         }
                     }
                 }
                 //Last block that have a size in the range [1, N]
                 if(linesRead > 0){
-                    System.out.println("Block "+blockNumber+" written");
 
-                    // TODO: 25/10/2022 Here we've to write the lexicon and inverted index into a file
-                    System.out.println(indexBuilder.getLexicon());
-                    String[] invertedIndexStrings = indexBuilder.getInvertedIndex();
-                    System.out.println(invertedIndexStrings[0] + "\n\n" + invertedIndexStrings[1]);
+                    //Write the block's lexicon into the given file
+                    indexBuilder.writeLexiconToFile("src/main/resources/files/lexiconBlock"+blockNumber+".txt");
+
+                    //Write the inverted index's files into the block's files
+                    indexBuilder.writeInvertedIndexToFile(
+                            "src/main/resources/files/invertedIndexDocIds"+blockNumber+".txt",
+                            "src/main/resources/files/invertedIndexFrequencies"+blockNumber+".txt");
+
+                    System.out.println("Block "+blockNumber+" written");
 
                     //Clear the data structures
                     indexBuilder.clear();
-                    stringBuffer.delete(0,stringBuffer.length());
                 }
             }
-
-            //Close the input stream
-            fileInputStream.close();
-
-            // TODO: 25/10/2022 instead of returning, the partial inverted index must be written in a file 
-            //Return the parsed collection
-            return stringBuffer.toString();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     public static void main(String[] args){
-        parseCollection(COLLECTION_PATH, 100, false);
+        parseCollection(COLLECTION_PATH, 10, false);
     }
 }
