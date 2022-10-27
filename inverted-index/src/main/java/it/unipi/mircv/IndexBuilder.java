@@ -1,6 +1,12 @@
 package it.unipi.mircv;
 
-import java.util.*;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.StringTokenizer;
 import java.util.stream.Stream;
 
 // TODO: 27/10/2022 CHECK IF THE SPIMI ALGORITHM IS CORRECTLY IMPLEMENTED
@@ -201,18 +207,99 @@ public class IndexBuilder {
 
     /**
      * Writes the current lexicon into a file
+     * @param outputPath path of the file that will contain the block's lexicon
      */
-    public void writeLexiconToFile(){
-        // TODO: 27/10/2022 Implement the write of the lexicon in the disk
+    public void writeLexiconToFile(String outputPath){
+
+        //Object used to build the lexicon line into a string
+        StringBuilder stringBuilder = new StringBuilder();
+
+        BufferedWriter bufferedWriter;
+        try {
+            bufferedWriter = new BufferedWriter(new FileWriter(outputPath,true));
+
+            //Iterate over the lexicon
+            for (Map.Entry<String, Integer> entry : lexicon.entrySet()) {
+
+                //Retrieve the key-value pair
+                String term = entry.getKey();
+                Integer termId = entry.getValue();
+
+                //For each key-value pair generate the line
+                stringBuilder.append(term).append("\t").append(termId).append("\n");
+
+                //Write the line into the file
+                bufferedWriter.write(stringBuilder.toString());
+
+                //Clear the string builder to be used for the next entry
+                stringBuilder.delete(0, stringBuilder.length());
+            }
+
+            bufferedWriter.close();
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     /**
      * Writes the current inverted index in the disk, the inverted index is written in two different files:
      * The file containing the document ids of each posting list
      * The file containing the frequencies of the terms in the documents
+     * @param outputPathDocIds path of the file that will contain the document ids
+     * @param outputPathFrequencies path of the file that will contain the frequencies
      */
-    public void writeInvertedIndexToFile(){
-        // TODO: 27/10/2022 Implement the write of the inverted index's files
+    public void writeInvertedIndexToFile(String outputPathDocIds, String outputPathFrequencies){
+
+        //Object used to build the list of doc ids from a posting list
+        StringBuilder stringBuilderDocIds = new StringBuilder();
+
+        //Object used to build the list of frequencies from a posting list
+        StringBuilder stringBuilderFrequencies = new StringBuilder();
+
+        BufferedWriter bufferedWriterDocIds;
+
+        BufferedWriter bufferedWriterFrequencies;
+
+        try {
+            bufferedWriterDocIds = new BufferedWriter(new FileWriter(outputPathDocIds,true));
+            bufferedWriterFrequencies = new BufferedWriter(new FileWriter(outputPathFrequencies,true));
+
+            //Iterate over the lexicon
+            for (Map.Entry<Integer, ArrayList<Posting>> entry : invertedIndex.entrySet()) {
+
+                //Retrieve the posting list
+                ArrayList<Posting> postingList = entry.getValue();
+
+                //For each key-value pair, where K = termID and V = termId's posting list, are retrieved the list of doc
+                // ids and the list of frequencies as strings.
+                String[] postingListArray = getPostingList(postingList);
+
+                //The first element of the postingList array is the whitespace separated list of doc ids, it is appended
+                // to the string buffer with a newline at the end.
+                stringBuilderDocIds.append(postingListArray[0]).append("\n");
+
+                //The second element of the postingList array is the whitespace separated list of frequencies, it is
+                // appended to the string buffer with a newline at the end.
+                stringBuilderFrequencies.append(postingListArray[1]).append("\n");
+
+                //Write in the two files the doc ids and frequencies
+                bufferedWriterDocIds.write(stringBuilderDocIds.toString());
+                bufferedWriterFrequencies.write(stringBuilderFrequencies.toString());
+
+                //Clear the string builders to be used for the next entry
+                stringBuilderDocIds.delete(0, stringBuilderDocIds.length());
+                stringBuilderFrequencies.delete(0, stringBuilderFrequencies.length());
+
+            }
+
+            bufferedWriterDocIds.close();
+            bufferedWriterFrequencies.close();
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -295,11 +382,8 @@ public class IndexBuilder {
     }
 
     public static void main(String[] args){
-        IndexBuilder indexBuilder = new IndexBuilder();
-        /*indexBuilder.insertDocument("1\tProva prova ciao");
-        indexBuilder.insertDocument("2\tProva posting prova ciao");
-        indexBuilder.insertDocument("3\tProva addios prova ciao");*/
+        /*IndexBuilder indexBuilder = new IndexBuilder();
         System.out.println(indexBuilder.invertedIndex);
-        System.out.println(indexBuilder.getInvertedIndex()[0] + "\n\n" + indexBuilder.getInvertedIndex()[1]);
+        System.out.println(indexBuilder.getInvertedIndex()[0] + "\n\n" + indexBuilder.getInvertedIndex()[1]);*/
     }
 }
