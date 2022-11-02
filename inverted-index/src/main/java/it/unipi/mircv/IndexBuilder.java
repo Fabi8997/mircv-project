@@ -163,7 +163,6 @@ public class IndexBuilder {
                         lexicon.put(term, currTermID);
 
                         //Insert a new posting list in the inverted index
-                        // TODO: 27/10/2022 Change into an array of int (???)
                         ArrayList<Posting> postingsList = new ArrayList<>();
                         Posting posting = new Posting(docId, 1);
                         postingsList.add(posting);
