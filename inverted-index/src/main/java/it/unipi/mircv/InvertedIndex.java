@@ -55,7 +55,6 @@ public class InvertedIndex {
             //If the file exist
             if(currentEntry != null) {
 
-                // TODO: 26/10/2022 Check utf-8
                 //Read the uncompressed tar file specifying UTF-8 as encoding
                 InputStreamReader inputStreamReader = new InputStreamReader(tarInput, StandardCharsets.UTF_8);
 
