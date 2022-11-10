@@ -11,6 +11,8 @@ import java.util.stream.Stream;
 
 // TODO: 27/10/2022 CHECK IF THE SPIMI ALGORITHM IS CORRECTLY IMPLEMENTED
 
+// TODO: 03/11/2022 ADD the document index part, we can generate it also in this part! 
+
 /**
  * Represent a component that gives the methods to build the lexicon and the inverted index for each block.
  */
