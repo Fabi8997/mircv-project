@@ -19,6 +19,8 @@ import java.util.stream.Stream;
 public class IndexBuilder {
     HashMap<String, Integer> lexicon;
     HashMap<Integer, ArrayList<Posting>> invertedIndex;
+
+    HashMap<Integer, Integer> documentIndex;
     int currTermID;
 
     /**
@@ -30,6 +32,7 @@ public class IndexBuilder {
     public IndexBuilder() {
         lexicon = new HashMap<>();
         invertedIndex = new HashMap<>();
+        documentIndex = new HashMap<>();
         currTermID = 1;
     }
 
@@ -123,8 +126,14 @@ public class IndexBuilder {
             return;
         }
 
-        //Split the text using the whitespace as delimiter, generate a stream of String
-        Stream.of(text.split(" "))
+        //Split the text using the whitespace as delimiter
+        String[] tokens = text.split(" ");
+
+        //Insert the information of the document in the document index for the block
+        documentIndex.put(docId, tokens.length);
+
+        //Generate a stream of String
+        Stream.of(tokens)
                 .forEach((term) -> {
                     //If the term is already present in the lexicon
                     if(lexicon.containsKey(term)){
@@ -190,6 +199,13 @@ public class IndexBuilder {
     }
 
     /**
+     * Clear the instance of the document index, it must be used after the document index has been written in the disk.
+     */
+    private void clearDocumentIndex(){
+        documentIndex.clear();
+    }
+
+    /**
      * Reset the current term id, it must be used before starting to process a new block.
      */
     private void clearTermId(){
@@ -202,7 +218,9 @@ public class IndexBuilder {
     public void clear(){
         clearLexicon();
         clearInvertedIndex();
+        clearDocumentIndex();
         clearTermId();
+
     }
 
 
@@ -228,6 +246,39 @@ public class IndexBuilder {
 
                 //For each key-value pair generate the line
                 stringBuilder.append(term).append("\t").append(termId).append("\n");
+
+                //Write the line into the file
+                bufferedWriter.write(stringBuilder.toString());
+
+                //Clear the string builder to be used for the next entry
+                stringBuilder.delete(0, stringBuilder.length());
+            }
+
+            bufferedWriter.close();
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    public void writeDocumentIndexToFile(String outputPath){
+
+        //Object used to build the lexicon line into a string
+        StringBuilder stringBuilder = new StringBuilder();
+
+        BufferedWriter bufferedWriter;
+        try {
+            bufferedWriter = new BufferedWriter(new FileWriter(outputPath,true));
+
+            //Iterate over the lexicon
+            for (Map.Entry<Integer, Integer> entry : documentIndex.entrySet()) {
+
+                //Retrieve the key-value pair
+                int documentLength = entry.getValue();
+
+                //For each key-value pair generate the line
+                stringBuilder.append(documentLength).append("\n");
 
                 //Write the line into the file
                 bufferedWriter.write(stringBuilder.toString());
