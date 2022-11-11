@@ -67,11 +67,15 @@ public class InvertedIndex {
                 //Counter to keep the number of blocks read
                 int blockNumber = 1;
 
+                //Counter to keep the number of documents read
+                int numberOfDocuments = 0;
+
                 //Counter to keep the number of lines currently read
                 int linesRead = 0;
 
                 //IndexBuilder used to build the inverted index for each block
                 IndexBuilder indexBuilder = new IndexBuilder();
+
 
                 //Iterate over the lines
                 while ((line = bufferedReader.readLine()) != null ) {
@@ -80,6 +84,7 @@ public class InvertedIndex {
 
                     //String to keep the current document processed
                     String processedDocument;
+
 
                     //Check it the stopwords removal and stemming are requested
                     if (stopwordsRemovalAndStemming) {
@@ -103,50 +108,83 @@ public class InvertedIndex {
                         //If we have all the lines to build a block, it will be built
                         if(linesRead == blockSize){
 
-                            //Write the block's lexicon into the given file
-                            indexBuilder.writeLexiconToFile("src/main/resources/files/lexiconBlock"+blockNumber+".txt");
-
-                            //Write the inverted index's files into the block's files
-                            indexBuilder.writeInvertedIndexToFile(
-                                    "src/main/resources/files/invertedIndexDocIds"+blockNumber+".txt",
-                                    "src/main/resources/files/invertedIndexFrequencies"+blockNumber+".txt");
-
-                            System.out.println("Block "+blockNumber+" written");
+                            //Write all the block's information to files
+                            writeToFiles(indexBuilder, blockNumber);
 
                             //Reset the number of lines read
                             linesRead = 0;
 
+                            numberOfDocuments = blockNumber*blockSize;
+
                             //Increment the id of the next block
                             blockNumber++;
-
-                            //Clear the data structures
-                            indexBuilder.clear();
                         }
                     }
                 }
                 //Last block that have a size in the range [1, N]
                 if(linesRead > 0){
 
-                    //Write the block's lexicon into the given file
-                    indexBuilder.writeLexiconToFile("src/main/resources/files/lexiconBlock"+blockNumber+".txt");
-
-                    //Write the inverted index's files into the block's files
-                    indexBuilder.writeInvertedIndexToFile(
-                            "src/main/resources/files/invertedIndexDocIds"+blockNumber+".txt",
-                            "src/main/resources/files/invertedIndexFrequencies"+blockNumber+".txt");
-
-                    System.out.println("Block "+blockNumber+" written");
-
-                    //Clear the data structures
-                    indexBuilder.clear();
+                    numberOfDocuments = (blockNumber -1)*blockSize + linesRead;
+                    writeStatistics("src/main/resources/files/statistics", blockNumber, numberOfDocuments);
+                    //Write all the block's information to files
+                    writeToFiles(indexBuilder, blockNumber);
+                }else{
+                    writeStatistics("src/main/resources/files/statistics", blockNumber-1, numberOfDocuments);
                 }
+
             }
+
+
+
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
+
+    private static void writeStatistics(String outputPath, int numberOfBlocks, int numberOfDocs){
+
+        //Object used to build the lexicon line into a string
+        StringBuilder stringBuilder = new StringBuilder();
+
+        BufferedWriter bufferedWriter;
+        try {
+            bufferedWriter = new BufferedWriter(new FileWriter(outputPath,true));
+
+            stringBuilder
+                    .append(numberOfBlocks).append("\n")
+                    .append(numberOfDocs).append("\n");;
+
+            bufferedWriter.write(stringBuilder.toString());
+
+            bufferedWriter.close();
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    private static void writeToFiles(IndexBuilder indexBuilder, int blockNumber){
+        //Write the block's lexicon into the given file
+        indexBuilder.writeLexiconToFile("src/main/resources/files/lexiconBlock"+blockNumber+".txt");
+
+        //Write the block's document index into the given file
+        indexBuilder.writeDocumentIndexToFile("src/main/resources/files/documentIndex.txt");
+
+        //Write the inverted index's files into the block's files
+        indexBuilder.writeInvertedIndexToFile(
+                "src/main/resources/files/invertedIndexDocIds"+blockNumber+".txt",
+                "src/main/resources/files/invertedIndexFrequencies"+blockNumber+".txt");
+
+        System.out.println("Block "+blockNumber+" written");
+
+        //Clear the data structures
+        indexBuilder.clear();
+    }
+
     public static void main(String[] args){
         parseCollection(COLLECTION_PATH, Integer.parseInt(args[0]), Boolean.valueOf(args[1]));
+
     }
 }
