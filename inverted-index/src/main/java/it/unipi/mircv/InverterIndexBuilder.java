@@ -1,12 +1,7 @@
 package it.unipi.mircv;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.StringTokenizer;
 import java.util.stream.Stream;
 
 // TODO: 27/10/2022 CHECK IF THE SPIMI ALGORITHM IS CORRECTLY IMPLEMENTED
@@ -16,11 +11,20 @@ import java.util.stream.Stream;
 /**
  * Represent a component that gives the methods to build the lexicon and the inverted index for each block.
  */
-public class IndexBuilder {
+public class InverterIndexBuilder {
     HashMap<String, Integer> lexicon;
     HashMap<Integer, ArrayList<Posting>> invertedIndex;
 
     HashMap<Integer, Integer> documentIndex;
+
+    //static DB documentIndexDb = DBMaker.fileDB(DOCUMENT_INDEX_DB_PATH).make();
+
+    /*static HTreeMap<Integer, byte[]> documentIndex = documentIndexDb.hashMap("document_index")
+            .keySerializer(Serializer.INTEGER)
+            .valueSerializer(Serializer.BYTE_ARRAY)
+            .create();
+    */
+
     int currTermID;
 
     /**
@@ -29,7 +33,14 @@ public class IndexBuilder {
      * Set the first termID to 1, the term id for each block carries also the information about the position of a term
      * in the inverted index.
      */
-    public IndexBuilder() {
+    public InverterIndexBuilder() {
+        lexicon = new HashMap<>();
+        invertedIndex = new HashMap<>();
+        documentIndex = new HashMap<>();
+        currTermID = 1;
+    }
+
+    public InverterIndexBuilder(int blockNumber) {
         lexicon = new HashMap<>();
         invertedIndex = new HashMap<>();
         documentIndex = new HashMap<>();
@@ -95,45 +106,15 @@ public class IndexBuilder {
 
     /**
      * Insert the document's tokens inside the lexicon and the inverted index
-     * @param processedDocument String containing a document id and the list of tokens of that specific document.
-     *                          The required format is [docId]\t[listOfTokens], the [] are not present in the string.
-     *                          Example: 232    this is an example
+     * @param parsedDocument Contains the id of the document, its length and the list of tokens
      */
-    public void insertDocument(String processedDocument) {
-
-        //Integer to keep the document id of the given document
-        int docId;
-
-        //String containing the tokenized text
-        String text;
-
-        //Divide the line using \t as delimiter, it'll split the doc_id and the text
-        StringTokenizer stringTokenizer = new StringTokenizer(processedDocument, "\t");
-
-        //Retrieve the first token, that is the docno
-        if(stringTokenizer.hasMoreTokens()){
-            docId = Integer.parseInt(stringTokenizer.nextToken());
-
-            //Retrieve the second token, that is the text and cast it to lower case
-            if(stringTokenizer.hasMoreTokens()){
-                text = stringTokenizer.nextToken().toLowerCase();
-            }else{
-                //The text is empty, or it was not possible to retrieve it
-                return;
-            }
-        }else{
-            //The line is empty, or it was not possible to retrieve it
-            return;
-        }
-
-        //Split the text using the whitespace as delimiter
-        String[] tokens = text.split(" ");
+    public void insertDocument(ParsedDocument parsedDocument) {
 
         //Insert the information of the document in the document index for the block
-        documentIndex.put(docId, tokens.length);
+        documentIndex.put(parsedDocument.docId, parsedDocument.documentLength);
 
         //Generate a stream of String
-        Stream.of(tokens)
+        Stream.of(parsedDocument.terms)
                 .forEach((term) -> {
                     //If the term is already present in the lexicon
                     if(lexicon.containsKey(term)){
@@ -148,7 +129,7 @@ public class IndexBuilder {
                         for(Posting p : termPostingList){
 
                             //If the doc id is present, increment the frequency and terminate the loop
-                            if(p.getDoc_id() == docId){
+                            if(p.getDoc_id() == parsedDocument.docId){
 
                                 //Increment the frequency of the doc id
                                 p.frequency++;
@@ -162,7 +143,7 @@ public class IndexBuilder {
                         if(!found){
 
                             //Posting added to the posting list of the term
-                            termPostingList.add(new Posting(docId, 1));
+                            termPostingList.add(new Posting(parsedDocument.docId, 1));
                         }
                     }
                     //If the term was not present in the lexicon
@@ -175,7 +156,7 @@ public class IndexBuilder {
 
                         //Insert a new posting list in the inverted index
                         ArrayList<Posting> postingsList = new ArrayList<>();
-                        Posting posting = new Posting(docId, 1);
+                        Posting posting = new Posting(parsedDocument.docId, 1);
                         postingsList.add(posting);
                         invertedIndex.put(currTermID, postingsList);
 
@@ -230,69 +211,12 @@ public class IndexBuilder {
      */
     public void writeLexiconToFile(String outputPath){
 
-        //Object used to build the lexicon line into a string
-        StringBuilder stringBuilder = new StringBuilder();
-
-        BufferedWriter bufferedWriter;
-        try {
-            bufferedWriter = new BufferedWriter(new FileWriter(outputPath,true));
-
-            //Iterate over the lexicon
-            for (Map.Entry<String, Integer> entry : lexicon.entrySet()) {
-
-                //Retrieve the key-value pair
-                String term = entry.getKey();
-                Integer termId = entry.getValue();
-
-                //For each key-value pair generate the line
-                stringBuilder.append(term).append("\t").append(termId).append("\n");
-
-                //Write the line into the file
-                bufferedWriter.write(stringBuilder.toString());
-
-                //Clear the string builder to be used for the next entry
-                stringBuilder.delete(0, stringBuilder.length());
-            }
-
-            bufferedWriter.close();
-
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
+        // TODO: 22/12/2022 Scrivere il lexicon in un random access file
     }
 
     public void writeDocumentIndexToFile(String outputPath){
 
-        //Object used to build the lexicon line into a string
-        StringBuilder stringBuilder = new StringBuilder();
-
-        BufferedWriter bufferedWriter;
-        try {
-            bufferedWriter = new BufferedWriter(new FileWriter(outputPath,true));
-
-            //Iterate over the lexicon
-            for (Map.Entry<Integer, Integer> entry : documentIndex.entrySet()) {
-
-                //Retrieve the key-value pair
-                int documentLength = entry.getValue();
-
-                //For each key-value pair generate the line
-                stringBuilder.append(documentLength).append("\n");
-
-                //Write the line into the file
-                bufferedWriter.write(stringBuilder.toString());
-
-                //Clear the string builder to be used for the next entry
-                stringBuilder.delete(0, stringBuilder.length());
-            }
-
-            bufferedWriter.close();
-
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
+        // TODO: 22/12/2022 Scrivere il doc index su random access file o map db
     }
 
     /**
@@ -304,54 +228,7 @@ public class IndexBuilder {
      */
     public void writeInvertedIndexToFile(String outputPathDocIds, String outputPathFrequencies){
 
-        //Object used to build the list of doc ids from a posting list
-        StringBuilder stringBuilderDocIds = new StringBuilder();
-
-        //Object used to build the list of frequencies from a posting list
-        StringBuilder stringBuilderFrequencies = new StringBuilder();
-
-        BufferedWriter bufferedWriterDocIds;
-
-        BufferedWriter bufferedWriterFrequencies;
-
-        try {
-            bufferedWriterDocIds = new BufferedWriter(new FileWriter(outputPathDocIds,true));
-            bufferedWriterFrequencies = new BufferedWriter(new FileWriter(outputPathFrequencies,true));
-
-            //Iterate over the lexicon
-            for (Map.Entry<Integer, ArrayList<Posting>> entry : invertedIndex.entrySet()) {
-
-                //Retrieve the posting list
-                ArrayList<Posting> postingList = entry.getValue();
-
-                //For each key-value pair, where K = termID and V = termId's posting list, are retrieved the list of doc
-                // ids and the list of frequencies as strings.
-                String[] postingListArray = getPostingList(postingList);
-
-                //The first element of the postingList array is the whitespace separated list of doc ids, it is appended
-                // to the string buffer with a newline at the end.
-                stringBuilderDocIds.append(postingListArray[0]).append("\n");
-
-                //The second element of the postingList array is the whitespace separated list of frequencies, it is
-                // appended to the string buffer with a newline at the end.
-                stringBuilderFrequencies.append(postingListArray[1]).append("\n");
-
-                //Write in the two files the doc ids and frequencies
-                bufferedWriterDocIds.write(stringBuilderDocIds.toString());
-                bufferedWriterFrequencies.write(stringBuilderFrequencies.toString());
-
-                //Clear the string builders to be used for the next entry
-                stringBuilderDocIds.delete(0, stringBuilderDocIds.length());
-                stringBuilderFrequencies.delete(0, stringBuilderFrequencies.length());
-
-            }
-
-            bufferedWriterDocIds.close();
-            bufferedWriterFrequencies.close();
-
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        // TODO: 22/12/2022 Scrivere in due file i doc id e le freq
     }
 
     /**
@@ -361,6 +238,7 @@ public class IndexBuilder {
      */
     public String getLexicon(){
 
+        // TODO: 22/12/2022 conversione in byte
         //Object used to build the lexicon into a string
         StringBuilder stringBuilder = new StringBuilder();
 
@@ -383,6 +261,7 @@ public class IndexBuilder {
      */
     public String[] getInvertedIndex(){
 
+        // TODO: 22/12/2022 conversione in byte
         //Object used to build the list of doc ids from a posting list
         StringBuilder stringBuilderDocIds = new StringBuilder();
 
@@ -415,6 +294,8 @@ public class IndexBuilder {
      * contains a list of frequencies separated by a whitespace.
      */
     private String[] getPostingList(ArrayList<Posting> postingList){
+
+        // TODO: 22/12/2022 conversione posting list
 
         //Object used to build the list of doc ids into a string
         StringBuilder stringBuilderDocIds = new StringBuilder();

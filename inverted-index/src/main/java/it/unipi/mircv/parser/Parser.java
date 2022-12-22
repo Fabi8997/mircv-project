@@ -1,5 +1,6 @@
 package it.unipi.mircv.parser;
 
+import it.unipi.mircv.ParsedDocument;
 import opennlp.tools.stemmer.PorterStemmer;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,12 +13,11 @@ public class Parser {
     /**
      * Parse the document tokenizing each document in the format: doc_id text_tokenized
      * @param line String containing a document of the collection in the format: [doc_id]\t[text]\n
-     * @param stopwordsRemoval True to perform the stopwords removal, otherwise must be False
-     * @param stemming True to perform the stemming, otherwise must be False
+     * @param stopwordsRemovalAndStemming True to perform the stopwords removal and stemming, otherwise must be False
      * @param stopwords List of strings containing the stopwords, it's Null if stopwordsRemoval is false
      * @return Document tokenized in the format: [doc_id]\t[token1 token2 ... tokenN]\n
      */
-    public static String processDocument(String line, boolean stopwordsRemoval, boolean stemming, List<String> stopwords){
+    public static ParsedDocument processDocument(String line, boolean stopwordsRemovalAndStemming, List<String> stopwords){
         //Utility variables to keep the current docno and text
         String docno;
         String text;
@@ -43,31 +43,19 @@ public class Parser {
             return null;
         }
 
-        //Object to build the result string
-        StringBuilder stringBuilder = new StringBuilder();
-
-        //Build the first part: [docno]\t
-        stringBuilder.append(docno).append("\t");
-
-        // TODO: 26/10/2022 Fare tre metodi per gestire in un unico stream (Forse non si può)!!!
 
         //Remove punctuation
-        text = removePunctuation(text);
+        String[] splittedText = removePunctuation(text).split(" ");;
 
-        if(stopwordsRemoval) {
+        if(stopwordsRemovalAndStemming) {
             //Remove stop words
-            text = removeStopWords(text, stopwords);
-        }
+            splittedText = removeStopWords(splittedText, stopwords);
 
-        if(stemming) {
             //Stemming
-            text = getStems(text);
+            splittedText = getStems(splittedText);
         }
 
-        //Build the second part: [docno]\t[token1 token2 ... tokenN]\n
-        stringBuilder.append(text);
-
-        return stringBuilder.toString();
+        return new ParsedDocument(Integer.parseInt(docno), splittedText);
         
     }
 
@@ -86,21 +74,22 @@ public class Parser {
      * @param stopwords List of strings containing the stopwords
      * @return Text without the stopwords
      */
-    private static String removeStopWords(String text, List<String> stopwords){
+    private static String[] removeStopWords(String[] text, List<String> stopwords){
 
         //Using the streams is better, since the performance are x6 faster than the manual remove or regex removal
-        ArrayList<String> words = Stream.of(text.split(" "))
+        ArrayList<String> words = Stream.of(text)
                 .collect(Collectors.toCollection(ArrayList<String>::new));
         words.removeAll(stopwords);
-        return String.join(" ", words);
+        String[] terms = new String[words.size()];
+        return words.toArray(terms);
     }
 
     /**
      * Apply the Porter Stemmer in order to stem each token in a text
-     * @param text String containing a tokenized text
-     * @return String composed by a list of stems
+     * @param terms Array of String containing a tokenized text
+     * @return Array of stems
      */
-    private static String getStems(String text){
+    private static String[] getStems(String[] terms){
 
         //Instance of a porter stemmer
         PorterStemmer porterStemmer = new PorterStemmer();
@@ -108,13 +97,9 @@ public class Parser {
         //Create an array list of stems by computing different phases from a stream of tokens:
         //  The stream is obtained by splitting the text using the whitespace as delimiter;
         //  It's used a map stage where each word is stemmed
-        //  The overall result is collected into an ArrayList of strings
-        ArrayList<String> words = Stream.of(text.split(" "))
-                .map(porterStemmer::stem)
-                .collect(Collectors.toCollection(ArrayList<String>::new));
-
-        //The words are joined together using a whitespace as delimiter
-        return String.join(" ", words);
+        //  The overall result is collected into an Array of strings
+        return Stream.of(terms)
+                .map(porterStemmer::stem).toArray(String[]::new);
     }
 
     public static void main(String[] args) {
