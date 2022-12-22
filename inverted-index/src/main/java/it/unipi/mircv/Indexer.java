@@ -1,31 +1,34 @@
 package it.unipi.mircv;
 
+import it.unipi.mircv.parser.Parser;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.mapdb.volume.MappedFileVol;
+import org.mapdb.volume.Volume;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 
-public class InvertedIndex {
+public class Indexer {
+
+    //Counter to keep the number of blocks read
+    static int blockNumber = 1;
 
     static String COLLECTION_PATH = "src/main/resources/dataset/samplecompressed.tar.gz";
 
+    static final String STATISTICS_PATH = "src/main/resources/files/statistics";
 
-    // TODO: 25/10/2022 ParseCollection must read N lines, then it must write the partial indexes obtained parsing these
-    // TODO: 25/10/2022 lines into a partial file in the disc -> e.g. read 10 lines, build the inverted index for each  
-    // TODO: 25/10/2022 line using a tmp accumulator (probably an hashmap) then write the partial sorted inverted index 
-    // TODO: 25/10/2022 in a file, then when all the files are created it must be performed the merge of these files
     /**
      * Build an inverted index for the collection in the given path
      * @param path Path of the archive containing the collection, must be a tar.gz archive
-     * @param blockSize Size of the block to be read, that is the number of lines for each chunk of input document
      * @param stopwordsRemovalAndStemming true to apply the stopwords removal and stemming procedure, false otherwise
      */
-    private static void parseCollection(String path, int blockSize, Boolean stopwordsRemovalAndStemming){
+    private static void parseCollection(String path, Boolean stopwordsRemovalAndStemming){
 
         //Path of the collection to be read
         File file = new File(path);
@@ -63,79 +66,59 @@ public class InvertedIndex {
                 //Variable to keep the current line read from the buffer
                 String line;
 
-                //Counter to keep the number of blocks read
-                int blockNumber = 1;
+                //Instantiate the inverted index builder for the current block
+                InverterIndexBuilder invertedIndexBuilder = new InverterIndexBuilder();
 
-                //Counter to keep the number of documents read
+                //Counter to keep the number of documents read in total
                 int numberOfDocuments = 0;
 
-                //Counter to keep the number of lines currently read
-                int linesRead = 0;
+                //Counter to keep the number of documents read for the current block
+                int blockDocuments = 0;
 
-                //IndexBuilder used to build the inverted index for each block
-                InverterIndexBuilder inverterIndexBuilder = new InverterIndexBuilder();
-
+                //String to keep the current document processed
+                ParsedDocument parsedDocument;
 
                 //Iterate over the lines
                 while ((line = bufferedReader.readLine()) != null ) {
 
                     // TODO: 26/10/2022 DEAL WITH THE WHITESPACE THAT MUST NOT BE PRESENT IN THE LEXICON!
 
-                    //String to keep the current document processed
-                    String processedDocument = null;
-
-
-                    //Check it the stopwords removal and stemming are requested
-                    if (stopwordsRemovalAndStemming) {
-
-                        //Process the document using the stemming and stopwords removal
-                        //processedDocument = Parser.processDocument(line, true, true, stopwords);
-                    } else {
-
-                        //Process the document without the stemming and stopwords removal
-                        //processedDocument = Parser.processDocument(line, false, false, null);
-                    }
+                    //Process the document using the stemming and stopwords removal
+                    parsedDocument = Parser.processDocument(line, stopwordsRemovalAndStemming, stopwords);
 
                     //If the parsing of the document was completed correctly, it'll be appended to the collection buffer
-                    if (processedDocument!= null && !processedDocument.isEmpty()) {
+                    if (parsedDocument!= null && parsedDocument.terms.length != 0) {
 
-                        //Insert the document in the block's data structures (Lexicon and inverted index)
-                        //inverterIndexBuilder.insertDocument(processedDocument);
+                        numberOfDocuments++;
+                        blockDocuments++;
 
-                        //linesRead++;
+                        parsedDocument.setDocId(numberOfDocuments);
 
-                        //If we have all the lines to build a block, it will be built
-                        if(!isMemoryAvailable(0.7)){
+                        //System.out.println("Doc: "+parsedDocument.docId + " read with " + parsedDocument.documentLength + "terms");
+                        invertedIndexBuilder.insertDocument(parsedDocument);
 
-                            //Write all the block's information to files
-                            writeToFiles(inverterIndexBuilder, blockNumber);
-
-                            //Reset the number of lines read
-                            //linesRead = 0;
-
-                            numberOfDocuments = blockNumber*blockSize;
-
-                            //Increment the id of the next block
+                        if(!isMemoryAvailable(0.5)){
+                            // TODO: 22/12/2022  
+                            //invertedIndexBuilder.sortLexicon();
+                            //invertedIndexBuilder.writeBlockToDisk(blockNumber);
                             blockNumber++;
+                            blockDocuments = 0;
                         }
                     }
                 }
-                //Last block that have a size in the range [1, N]
-                // TODO: 11/11/2022 Check if the disk based buffer is not empty, if it isn't empty write the things
-                if(linesRead > 0){
-
-                    numberOfDocuments = (blockNumber -1)*blockSize + linesRead;
-                    writeStatistics("src/main/resources/files/statistics", blockNumber, numberOfDocuments);
-
-                    //Write all the block's information to files
-                    writeToFiles(inverterIndexBuilder, blockNumber);
+                if(blockDocuments > 0 ){
+                    // TODO: 22/12/2022
+                    //invertedIndexBuilder.sortLexicon();
+                    //invertedIndexBuilder.writeBlockToDisk(blockNumber);
+                    writeStatistics(STATISTICS_PATH, blockNumber, numberOfDocuments);
                 }else{
-                    writeStatistics("src/main/resources/files/statistics", blockNumber-1, numberOfDocuments);
+                    writeStatistics(STATISTICS_PATH, blockNumber-1, numberOfDocuments);
                 }
-
+                System.out.println(invertedIndexBuilder.documentIndex);
+                System.out.println(invertedIndexBuilder.invertedIndex);
+                System.out.println(invertedIndexBuilder.lexicon);
+                // TODO: 20/12/2022
             }
-
-
 
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -194,8 +177,17 @@ public class InvertedIndex {
         return (percentage_used_mem < percentage);
     }
 
+
+    public static byte[] intToBytes( final int i ) {
+        ByteBuffer byteBuffer = ByteBuffer.allocate(4);
+        byteBuffer.putInt(i);
+        return byteBuffer.array();
+    }
+
+
     public static void main(String[] args){
-        parseCollection(COLLECTION_PATH, Integer.parseInt(args[0]), Boolean.valueOf(args[1]));
+        parseCollection(COLLECTION_PATH, Boolean.valueOf(args[1]));
+
 
     }
 }

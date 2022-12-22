@@ -53,6 +53,14 @@ SPIMI-INVERT(token_stream) token_stream is obtained during the parsing of the do
     WRITEBLOCKTODISK(sorted_terms, dictionary, output file)
 
 
+lista
+    doc id
+    lista
+        parole
+
+lista
+    (doc_id, parola)
+
 MERGE ALL BLOCKS
 
 
@@ -67,8 +75,19 @@ MERGE ALL BLOCKS
 
 
 
+1 a b c d e
+2 a g y e w
+3 e f h u l
+
+                a b c d e g y w f h l
+
+        ->      a 1 2 ---> 1 : 0
+                b 1   ---> 1 : 3
+                c     ---> 2 : 4
+
+                a 1 2
 
 
 
 
-
+                b 1
