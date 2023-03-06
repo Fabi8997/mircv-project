@@ -91,3 +91,20 @@ MERGE ALL BLOCKS
 
 
                 b 1
+
+
+
+
+
+
+Scelta HashMap per la costruizione iniziale rispetto a TreeMap:
+- Il motivo è che l'inserimento con HM ha complessità O(1), analogamente con le get O(1), di conseguenza l'aggiornamento,
+  la lettura e l'inserimento di informazioni aggiuntive su un singolo term hanno tutte complessità O(1). -> O(n)
+  Usando TM sarebbero O(logn) n è il numero di termini inseriti fino a quel momento -> O(nlogn)
+  Questo vale per la costruzione del lexicon
+  Per l'ordinamento abbiamo deciso di costruire un TM a partire da una HM in modo tale da ordinare (senza doppioni)
+  durante la costruzione con complessita O(logm) dove m è |lexicon| cardinalità lexicon. -> O(mlogm)
+  Questo è meglio in quanto n > m, perchè in n consideriamo ogni singolo termine, i doppioni, l'aggiornamento delle
+  informazioni, mentre in m abbiamo solo i termini già aggiornati e senza doppioni. dunque n > m.
+
+
