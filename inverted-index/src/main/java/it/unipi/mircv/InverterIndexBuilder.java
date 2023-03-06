@@ -1,7 +1,12 @@
 package it.unipi.mircv;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 // TODO: 27/10/2022 CHECK IF THE SPIMI ALGORITHM IS CORRECTLY IMPLEMENTED
@@ -14,7 +19,6 @@ import java.util.stream.Stream;
 public class InverterIndexBuilder {
     HashMap<String, Integer> lexicon;
     HashMap<Integer, ArrayList<Posting>> invertedIndex;
-
     HashMap<Integer, Integer> documentIndex;
 
     //static DB documentIndexDb = DBMaker.fileDB(DOCUMENT_INDEX_DB_PATH).make();
@@ -227,8 +231,51 @@ public class InverterIndexBuilder {
      * @param outputPathFrequencies path of the file that will contain the frequencies
      */
     public void writeInvertedIndexToFile(String outputPathDocIds, String outputPathFrequencies){
+        RandomAccessFile docIdBlock = null, freqBlock = null;
+        try{
+            //document instantiation
+            docIdBlock = new RandomAccessFile(outputPathDocIds, "rw");
+            freqBlock = new RandomAccessFile(outputPathDocIds, "rw");
+        }
+        catch(FileNotFoundException fnfEx){
+            System.err.println("Exception during file creation of block");
+            fnfEx.printStackTrace();
+        }
+        RandomAccessFile finalDocIdBlock = docIdBlock;
+        RandomAccessFile finalFreqBlock = freqBlock;
+        AtomicInteger currentOffset = new AtomicInteger();
 
-        // TODO: 22/12/2022 Scrivere in due file i doc id e le freq
+        invertedIndex.forEach((termId, postingList) -> {    //for each element of the inverted index
+            int arrayLength = (postingList.size() + 1) * 4; //byte length of the information of the posting list
+            byte[] serializedIds = new byte[arrayLength];   //int for the term id + int for every docId
+            byte[] serializedFreqs = new byte[arrayLength]; //int for the term id + int for every frequency
+            byte[] serializedTermId = ByteBuffer.allocate(4).putInt(termId).array();
+
+            // TODO: 22/12/2022 controllare se serve il termId
+            System.arraycopy(serializedTermId, 0, serializedIds, 0, 4);
+            System.arraycopy(serializedTermId, 0, serializedFreqs, 0, 4);
+
+            AtomicInteger pos = new AtomicInteger(1);
+            postingList.forEach(posting -> {
+                //copy of the byte representation of the single posting info
+                System.arraycopy(ByteBuffer.allocate(4).putInt(posting.doc_id).array(), 0, serializedIds, pos.get() * 4, 4);
+                System.arraycopy(ByteBuffer.allocate(4).putInt(posting.frequency).array(), 0, serializedFreqs, pos.get() * 4, 4);
+                pos.getAndIncrement();
+            });
+
+            try{
+                //write the document information to disk
+                finalDocIdBlock.write(serializedIds, currentOffset.get(), arrayLength);
+                finalFreqBlock.write(serializedFreqs, currentOffset.get(), arrayLength);
+                // TODO: 22/12/2022 aggiorna offset in lexicon
+
+                currentOffset.addAndGet(arrayLength);
+            }
+            catch(IOException ioEx) {
+                System.err.println("Exception during write");
+                ioEx.printStackTrace();
+            }
+        });
     }
 
     /**
