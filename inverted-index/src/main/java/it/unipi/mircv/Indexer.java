@@ -4,8 +4,6 @@ import it.unipi.mircv.parser.Parser;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
-import org.mapdb.volume.MappedFileVol;
-import org.mapdb.volume.Volume;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -67,7 +65,7 @@ public class Indexer {
                 String line;
 
                 //Instantiate the inverted index builder for the current block
-                InverterIndexBuilder invertedIndexBuilder = new InverterIndexBuilder();
+                InvertedIndexBuilder invertedIndexBuilder = new InvertedIndexBuilder();
 
                 //Counter to keep the number of documents read in total
                 int numberOfDocuments = 0;
@@ -137,7 +135,7 @@ public class Indexer {
 
             stringBuilder
                     .append(numberOfBlocks).append("\n")
-                    .append(numberOfDocs).append("\n");;
+                    .append(numberOfDocs).append("\n");
 
             bufferedWriter.write(stringBuilder.toString());
 
@@ -149,22 +147,22 @@ public class Indexer {
 
     }
 
-    private static void writeToFiles(InverterIndexBuilder inverterIndexBuilder, int blockNumber){
+    private static void writeToFiles(InvertedIndexBuilder invertedIndexBuilder, int blockNumber){
         //Write the block's lexicon into the given file
-        inverterIndexBuilder.writeLexiconToFile("src/main/resources/files/lexiconBlock"+blockNumber+".txt");
+        invertedIndexBuilder.writeLexiconToFile("src/main/resources/files/lexiconBlock"+blockNumber+".txt");
 
         //Write the block's document index into the given file
-        inverterIndexBuilder.writeDocumentIndexToFile("src/main/resources/files/documentIndex.txt");
+        invertedIndexBuilder.writeDocumentIndexToFile("src/main/resources/files/documentIndex.txt");
 
         //Write the inverted index's files into the block's files
-        inverterIndexBuilder.writeInvertedIndexToFile(
+        invertedIndexBuilder.writeInvertedIndexToFile(
                 "src/main/resources/files/invertedIndexDocIds"+blockNumber+".txt",
                 "src/main/resources/files/invertedIndexFrequencies"+blockNumber+".txt");
 
         System.out.println("Block "+blockNumber+" written");
 
         //Clear the data structures
-        inverterIndexBuilder.clear();
+        invertedIndexBuilder.clear();
     }
 
     private static boolean isMemoryAvailable(double percentage){

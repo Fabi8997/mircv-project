@@ -107,4 +107,9 @@ Scelta HashMap per la costruizione iniziale rispetto a TreeMap:
   Questo è meglio in quanto n > m, perchè in n consideriamo ogni singolo termine, i doppioni, l'aggiornamento delle
   informazioni, mentre in m abbiamo solo i termini già aggiornati e senza doppioni. dunque n > m.
 
+Scelta algoritmo di sorting:
+- inserimento ordinato in una tree map
 
+
+readFully(byte[] b, int off, int len)
+Reads exactly len bytes from this file into the byte array, starting at the current file pointer.

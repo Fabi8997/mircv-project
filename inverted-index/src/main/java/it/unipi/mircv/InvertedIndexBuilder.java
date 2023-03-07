@@ -4,8 +4,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
@@ -16,8 +15,10 @@ import java.util.stream.Stream;
 /**
  * Represent a component that gives the methods to build the lexicon and the inverted index for each block.
  */
-public class InverterIndexBuilder {
+public class InvertedIndexBuilder {
     HashMap<String, Integer> lexicon;
+
+    TreeMap<String, Integer> sortedLexicon;
     HashMap<Integer, ArrayList<Posting>> invertedIndex;
     HashMap<Integer, Integer> documentIndex;
 
@@ -37,14 +38,14 @@ public class InverterIndexBuilder {
      * Set the first termID to 1, the term id for each block carries also the information about the position of a term
      * in the inverted index.
      */
-    public InverterIndexBuilder() {
+    public InvertedIndexBuilder() {
         lexicon = new HashMap<>();
         invertedIndex = new HashMap<>();
         documentIndex = new HashMap<>();
         currTermID = 1;
     }
 
-    public InverterIndexBuilder(int blockNumber) {
+    public InvertedIndexBuilder(int blockNumber) {
         lexicon = new HashMap<>();
         invertedIndex = new HashMap<>();
         documentIndex = new HashMap<>();
@@ -208,6 +209,17 @@ public class InverterIndexBuilder {
 
     }
 
+    /**
+     * Sort the lexicon with complexity O(nlog(n)) where n is the # of elements in the lexicon.
+     */
+    public void sortLexicon(){
+
+        // TODO: 07/03/2023 !!! but now we've the double of the element in memory !!!
+
+        // TODO: 07/03/2023 Integer will be an array list of integer
+        sortedLexicon = new TreeMap<>(lexicon);
+
+    }
 
     /**
      * Writes the current lexicon into a file
@@ -362,8 +374,15 @@ public class InverterIndexBuilder {
     }
 
     public static void main(String[] args){
-        /*IndexBuilder indexBuilder = new IndexBuilder();
+        InvertedIndexBuilder indexBuilder = new InvertedIndexBuilder();
         System.out.println(indexBuilder.invertedIndex);
-        System.out.println(indexBuilder.getInvertedIndex()[0] + "\n\n" + indexBuilder.getInvertedIndex()[1]);*/
+        indexBuilder.insertDocument(new ParsedDocument(1,new String[]{"d","b","g","r","a","p","a"}));
+        indexBuilder.insertDocument(new ParsedDocument(3,new String[]{"h","b","t","b","1","u","b"}));
+        System.out.println(indexBuilder.lexicon);
+        indexBuilder.sortLexicon();
+        System.out.println(indexBuilder.sortedLexicon);
     }
+
+
+
 }
