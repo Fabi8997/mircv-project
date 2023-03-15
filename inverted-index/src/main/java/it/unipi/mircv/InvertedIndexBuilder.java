@@ -4,6 +4,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
@@ -16,9 +17,13 @@ import java.util.stream.Stream;
  * Represent a component that gives the methods to build the lexicon and the inverted index for each block.
  */
 public class InvertedIndexBuilder {
-    HashMap<String, Integer> lexicon;
 
-    TreeMap<String, Integer> sortedLexicon;
+    //The lexicon has a String as a key and an array of integers as value, the value is composed by:
+    // value[0] -> TermId
+    // value[1] -> offset in the posting list
+    HashMap<String, TermInfo> lexicon;
+
+    TreeMap<String, TermInfo> sortedLexicon;
     HashMap<Integer, ArrayList<Posting>> invertedIndex;
     HashMap<Integer, Integer> documentIndex;
 
@@ -52,63 +57,6 @@ public class InvertedIndexBuilder {
         currTermID = 1;
     }
 
-    /*public void insertDocument2(String processedDocument) {
-        int docId;
-        String text;
-
-        //Divide the line using \t as delimiter, it'll split the doc_id and the text
-        StringTokenizer stringTokenizer = new StringTokenizer(processedDocument, "\t");
-
-        //Retrieve the first token, that is the docno
-        if(stringTokenizer.hasMoreTokens()){
-            docId = Integer.parseInt(stringTokenizer.nextToken());
-
-            //Retrieve the second token, that is the text and cast it to lower case
-            if(stringTokenizer.hasMoreTokens()){
-                text = stringTokenizer.nextToken().toLowerCase();
-            }else{
-                //The text is empty, or it was not possible to retrieve it
-                return;
-            }
-        }else{
-            //The line is empty, or it was not possible to retrieve it
-            return;
-        }
-
-        String[] words = text.split(" ");
-        for(int i = 0; i < words.length; i++){
-            if(lexicon.containsKey(words[i])){
-
-                //update posting list
-                ArrayList<Posting> termPostingList = invertedIndex.get(lexicon.get(words[i]));
-                boolean found = false;
-                for(Posting p : termPostingList){
-                    if(p.getDoc_id() == docId){
-                        //posting relative to docID already present -> must be updated
-                        p.frequency++;
-                        found = true;
-                    }
-                }
-                if(!found){
-                    //posting relative to docId not present -> must be added
-                    termPostingList.add(new Posting(docId, 1));
-                }
-            }
-            else{
-                //create a new element in lexicon
-                lexicon.put(words[i], currTermID);
-
-                //create a new posting list in the inverted index
-                ArrayList<Posting> postingsList = new ArrayList<>();
-                Posting posting = new Posting(docId, 1);
-                postingsList.add(posting);
-                invertedIndex.put(currTermID, postingsList);
-
-                currTermID++;
-            }
-        }
-    }*/
-
     /**
      * Insert the document's tokens inside the lexicon and the inverted index
      * @param parsedDocument Contains the id of the document, its length and the list of tokens
@@ -124,8 +72,10 @@ public class InvertedIndexBuilder {
                     //If the term is already present in the lexicon
                     if(lexicon.containsKey(term)){
 
-                        //Retrieve the posting list of the term
-                        ArrayList<Posting> termPostingList = invertedIndex.get(lexicon.get(term));
+
+                        //Retrieve the posting list of the term accessing the first element of the array of int that is
+                        // the value of the termID in the lexicon
+                        ArrayList<Posting> termPostingList = invertedIndex.get(lexicon.get(term).getTermId());
 
                         //Flag to set if the doc id's posting is present in the posting list of the term
                         boolean found = false;
@@ -157,7 +107,9 @@ public class InvertedIndexBuilder {
                         // associated to the term, but also to the position in the inverted index!
                         // To access the posting list of that term we can just retrieve the currTermId and access the
                         // array of posting lists
-                        lexicon.put(term, currTermID);
+                        // TODO: 15/03/2023 0 is just a placeholder when the block is flushed
+                        //  in the disk the offset is committed, term must be truncated!
+                        lexicon.put(term, new TermInfo(currTermID, 0) );
 
                         //Insert a new posting list in the inverted index
                         ArrayList<Posting> postingsList = new ArrayList<>();
@@ -227,8 +179,70 @@ public class InvertedIndexBuilder {
      */
     public void writeLexiconToFile(String outputPath){
 
-        // TODO: 22/12/2022 Scrivere il lexicon in un random access file
+        try (RandomAccessFile randomAccessFile = new RandomAccessFile(outputPath, "rw")){
+
+            System.out.println("SORTED: \n" + sortedLexicon);
+
+            sortedLexicon.forEach( (key, termInfo) -> {
+
+                //Fill with whitespaces to keep the length standard
+                String tmp = Utils.leftpad(key, 48);
+
+                byte[] term = ByteBuffer.allocate(48).put(tmp.getBytes()).array();
+                byte[] termId = ByteBuffer.allocate(4).putInt(termInfo.getTermId()).array();
+                byte[] offset = ByteBuffer.allocate(4).putInt(termInfo.getOffset()).array();
+
+                try {
+                    randomAccessFile.write(term);
+                    randomAccessFile.write(termId);
+                    randomAccessFile.write(offset);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+
+            });
+
+
+        }catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
+
+    /**
+     * Reads the given lexicon block into a TreeMap
+     * @param inputPath path of the file that contains the block's lexicon
+     */
+    public TreeMap<String, TermInfo> readLexiconFromFile(String inputPath){
+
+        try (RandomAccessFile randomAccessFile = new RandomAccessFile(inputPath, "rw")){
+
+            TreeMap<String, TermInfo> lexiconTmp = new TreeMap<>();
+            byte[] b;
+            String term;
+            int termId;
+            int offset;
+
+            long length = randomAccessFile.length()/56;
+            System.out.println("LENGTH: " + length);
+
+            for(int i = 0; i < length; i ++){
+                b = new byte[48];
+                randomAccessFile.seek(i* 56L);
+                randomAccessFile.readFully(b, 0, 48);
+                term = new String(b, Charset.defaultCharset()).trim();
+                termId = randomAccessFile.readInt();
+                offset = randomAccessFile.readInt();
+
+                lexiconTmp.put(term, new TermInfo(termId,offset));
+            }
+
+            return lexiconTmp;
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 
     public void writeDocumentIndexToFile(String outputPath){
 
@@ -375,12 +389,19 @@ public class InvertedIndexBuilder {
 
     public static void main(String[] args){
         InvertedIndexBuilder indexBuilder = new InvertedIndexBuilder();
-        System.out.println(indexBuilder.invertedIndex);
         indexBuilder.insertDocument(new ParsedDocument(1,new String[]{"d","b","g","r","a","p","a"}));
         indexBuilder.insertDocument(new ParsedDocument(3,new String[]{"h","b","t","b","1","u","b"}));
-        System.out.println(indexBuilder.lexicon);
+        System.out.println(indexBuilder.invertedIndex);
+
+        System.out.println("Non sorted:"+indexBuilder.lexicon);
         indexBuilder.sortLexicon();
-        System.out.println(indexBuilder.sortedLexicon);
+        System.out.println("Sorted:" + indexBuilder.sortedLexicon);
+        /*indexBuilder.writeLexiconToFile("src/main/resources/files/provaWrite");
+        System.out.println("\n\n WRITTEN \n\n");
+        System.out.println(indexBuilder.readLexiconFromFile("src/main/resources/files/provaWrite"));*/
+
+
+
     }
 
 
