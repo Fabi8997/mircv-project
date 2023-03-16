@@ -111,11 +111,22 @@ Scelta algoritmo di sorting:
 - inserimento ordinato in una tree map
 
 
-readFully(byte[] b, int off, int len)
-Reads exactly len bytes from this file into the byte array, starting at the current file pointer.
-
-Come aggiungere l'offset? fare un for normale finche non troviamo l'id giusto? Scritto una volta non si tocca più.
+**********Come aggiungere l'offset? fare un for normale finche non troviamo l'id giusto? Scritto una volta non si tocca più.
 
 Aggiungere il numero di conteggi della parola nel lexicon ad ogni occorrenza
 
-Domani: Aggiungere scrittura del document index
+Durante l'esecuzione di una iterazione di spimi, lavoriamo sul parsedDocument, il parsed document corrisponde ad una
+entry del document index in quanto abbiamo all'interno: DOCNO, DOCID INCREMENTALE, DOCUMENT LENGTH.
+Sfruttando il fatto che queste informazioni siano già presenti abbiamo deciso di scriverle direttamente su file, andando
+a costruire iterazione per iterazione il document index -> al termine del processo sarà presente un file composto da:
+
+|  docid | docno | doclen  |
+
+Quando servirà il document index, questo verrà letto da file e posto in una hashmap.
+
+
+
+A noi serve qualcosa per costruire i file!!!!
+
+
+Possiamo non rispecchiare quanto visto prima!
