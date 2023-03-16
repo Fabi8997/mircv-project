@@ -1,5 +1,7 @@
 package it.unipi.mircv;
 
+import it.unipi.mircv.utils.Utils;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -27,13 +29,6 @@ public class InvertedIndexBuilder {
     HashMap<Integer, ArrayList<Posting>> invertedIndex;
     HashMap<Integer, Integer> documentIndex;
 
-    //static DB documentIndexDb = DBMaker.fileDB(DOCUMENT_INDEX_DB_PATH).make();
-
-    /*static HTreeMap<Integer, byte[]> documentIndex = documentIndexDb.hashMap("document_index")
-            .keySerializer(Serializer.INTEGER)
-            .valueSerializer(Serializer.BYTE_ARRAY)
-            .create();
-    */
 
     int currTermID;
 
@@ -58,7 +53,7 @@ public class InvertedIndexBuilder {
     }
 
     /**
-     * Insert the document's tokens inside the lexicon and the inverted index
+     * Insert the document's tokens inside the lexicon and the inverted index, it's an implementation of SPIMI
      * @param parsedDocument Contains the id of the document, its length and the list of tokens
      */
     public void insertDocument(ParsedDocument parsedDocument) {
@@ -244,10 +239,6 @@ public class InvertedIndexBuilder {
     }
 
 
-    public void writeDocumentIndexToFile(String outputPath){
-
-        // TODO: 22/12/2022 Scrivere il doc index su random access file o map db
-    }
 
     /**
      * Writes the current inverted index in the disk, the inverted index is written in two different files:
@@ -389,8 +380,8 @@ public class InvertedIndexBuilder {
 
     public static void main(String[] args){
         InvertedIndexBuilder indexBuilder = new InvertedIndexBuilder();
-        indexBuilder.insertDocument(new ParsedDocument(1,new String[]{"d","b","g","r","a","p","a"}));
-        indexBuilder.insertDocument(new ParsedDocument(3,new String[]{"h","b","t","b","1","u","b"}));
+        indexBuilder.insertDocument(new ParsedDocument(1,new String[]{"d","b","g","r","a","p","a"},"21"));
+        indexBuilder.insertDocument(new ParsedDocument(3,new String[]{"h","b","t","b","1","u","b"},"e21"));
         System.out.println(indexBuilder.invertedIndex);
 
         System.out.println("Non sorted:"+indexBuilder.lexicon);

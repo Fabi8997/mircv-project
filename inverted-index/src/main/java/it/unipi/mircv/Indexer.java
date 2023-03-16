@@ -6,7 +6,6 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 
 import java.io.*;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -19,7 +18,11 @@ public class Indexer {
 
     static String COLLECTION_PATH = "src/main/resources/dataset/samplecompressed.tar.gz";
 
-    static final String STATISTICS_PATH = "src/main/resources/files/statistics";
+    static final String STATISTICS_PATH = "src/main/resources/files/statistics.txt";
+
+    static final String DOCUMENT_INDEX_PATH = "src/main/resources/files/document_index.txt";
+
+    static final double PERCENTAGE = 0.5;
 
     /**
      * Build an inverted index for the collection in the given path
@@ -76,6 +79,8 @@ public class Indexer {
                 //String to keep the current document processed
                 ParsedDocument parsedDocument;
 
+                System.out.println("[INDEXER] Starting to fetch the documents...");
+
                 //Iterate over the lines
                 while ((line = bufferedReader.readLine()) != null ) {
 
@@ -92,30 +97,43 @@ public class Indexer {
 
                         parsedDocument.setDocId(numberOfDocuments);
 
-                        //System.out.println("Doc: "+parsedDocument.docId + " read with " + parsedDocument.documentLength + "terms");
+                        System.out.println("[INDEXER] Doc: "+parsedDocument.docId + " read with " + parsedDocument.documentLength + "terms");
                         invertedIndexBuilder.insertDocument(parsedDocument);
 
-                        if(!isMemoryAvailable(0.5)){
+                        //Insert the document index row in the document index file. It's the building of the document
+                        // index. The document index will be read from file in the future, the important is to build it
+                        // and store it inside a file.
+
+                        parsedDocument.writeToDisk(DOCUMENT_INDEX_PATH);
+
+                        if(!isMemoryAvailable()){
+                            System.out.println("[INDEXER] Memory over the threshold");
                             // TODO: 22/12/2022  
                             //invertedIndexBuilder.sortLexicon();
                             //invertedIndexBuilder.writeBlockToDisk(blockNumber);
+                            System.out.println("[INDEXER] Block "+blockNumber+" written to disk");
                             blockNumber++;
                             blockDocuments = 0;
                         }
                     }
                 }
                 if(blockDocuments > 0 ){
+
                     // TODO: 22/12/2022
                     //invertedIndexBuilder.sortLexicon();
                     //invertedIndexBuilder.writeBlockToDisk(blockNumber);
-                    writeStatistics(STATISTICS_PATH, blockNumber, numberOfDocuments);
+                    System.out.println("[INDEXER] Block "+blockNumber+" written to disk");
+
+                    writeStatistics(blockNumber, numberOfDocuments);
+                    System.out.println("[INDEXER] Statistics of the blocks written to disk");
+
                 }else{
-                    writeStatistics(STATISTICS_PATH, blockNumber-1, numberOfDocuments);
+                    writeStatistics(blockNumber-1, numberOfDocuments);
+                    System.out.println("[INDEXER] Statistics of the blocks written to disk");
                 }
-                System.out.println(invertedIndexBuilder.documentIndex);
-                System.out.println(invertedIndexBuilder.invertedIndex);
-                System.out.println(invertedIndexBuilder.lexicon);
-                // TODO: 20/12/2022
+                System.out.println("Document index: "+invertedIndexBuilder.documentIndex);
+                System.out.println("Inverted index: "+invertedIndexBuilder.invertedIndex);
+                System.out.println("Lexicon: " + invertedIndexBuilder.lexicon);
             }
 
         } catch (IOException e) {
@@ -124,14 +142,14 @@ public class Indexer {
     }
 
 
-    private static void writeStatistics(String outputPath, int numberOfBlocks, int numberOfDocs){
+    private static void writeStatistics(int numberOfBlocks, int numberOfDocs){
 
         //Object used to build the lexicon line into a string
         StringBuilder stringBuilder = new StringBuilder();
 
         BufferedWriter bufferedWriter;
         try {
-            bufferedWriter = new BufferedWriter(new FileWriter(outputPath,true));
+            bufferedWriter = new BufferedWriter(new FileWriter(Indexer.STATISTICS_PATH,true));
 
             stringBuilder
                     .append(numberOfBlocks).append("\n")
@@ -151,9 +169,6 @@ public class Indexer {
         //Write the block's lexicon into the given file
         invertedIndexBuilder.writeLexiconToFile("src/main/resources/files/lexiconBlock"+blockNumber+".txt");
 
-        //Write the block's document index into the given file
-        invertedIndexBuilder.writeDocumentIndexToFile("src/main/resources/files/documentIndex.txt");
-
         //Write the inverted index's files into the block's files
         invertedIndexBuilder.writeInvertedIndexToFile(
                 "src/main/resources/files/invertedIndexDocIds"+blockNumber+".txt",
@@ -165,21 +180,14 @@ public class Indexer {
         invertedIndexBuilder.clear();
     }
 
-    private static boolean isMemoryAvailable(double percentage){
+    private static boolean isMemoryAvailable(){
         Runtime rt = Runtime.getRuntime();
         long total_mem = rt.totalMemory();
         long free_mem = rt.freeMemory();
         long used_mem = total_mem - free_mem;
         long percentage_used_mem = used_mem/total_mem;
-        System.out.println("Amount of used memory: " + percentage_used_mem + "%");
-        return (percentage_used_mem < percentage);
-    }
-
-
-    public static byte[] intToBytes( final int i ) {
-        ByteBuffer byteBuffer = ByteBuffer.allocate(4);
-        byteBuffer.putInt(i);
-        return byteBuffer.array();
+        //System.out.println("Amount of used memory: " + percentage_used_mem + "%");
+        return (percentage_used_mem < Indexer.PERCENTAGE);
     }
 
 

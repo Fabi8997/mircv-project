@@ -113,3 +113,9 @@ Scelta algoritmo di sorting:
 
 readFully(byte[] b, int off, int len)
 Reads exactly len bytes from this file into the byte array, starting at the current file pointer.
+
+Come aggiungere l'offset? fare un for normale finche non troviamo l'id giusto? Scritto una volta non si tocca più.
+
+Aggiungere il numero di conteggi della parola nel lexicon ad ogni occorrenza
+
+Domani: Aggiungere scrittura del document index

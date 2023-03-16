@@ -55,7 +55,7 @@ public class Parser {
             splittedText = getStems(splittedText);
         }
 
-        return new ParsedDocument(Integer.parseInt(docno), splittedText);
+        return new ParsedDocument(docno, splittedText);
         
     }
 
