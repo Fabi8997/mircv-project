@@ -275,7 +275,7 @@ public class InvertedIndexBuilder {
 
         //Create resources with try-catch with resources
         try (RandomAccessFile docIdBlock = new RandomAccessFile(outputPathDocIds, "rw");
-             RandomAccessFile frequencyBlock = new RandomAccessFile(outputPathFrequencies, "rw");)
+             RandomAccessFile frequencyBlock = new RandomAccessFile(outputPathFrequencies, "rw"))
         {
 
             AtomicInteger currentOffset = new AtomicInteger(0);
@@ -309,6 +309,10 @@ public class InvertedIndexBuilder {
         }
 
         System.out.println("Lexicon after insertion: " + lexicon);
+    }
+
+    public void writeBlockToDisk(int blockNumber){
+
     }
 
     public static void main(String[] args){
