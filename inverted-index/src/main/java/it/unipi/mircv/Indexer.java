@@ -47,7 +47,8 @@ public class Indexer {
         }
 
         //Try to open the collection provided
-        try (FileInputStream fileInputStream = new FileInputStream(file)) {
+        try (FileInputStream fileInputStream = new FileInputStream(file);
+             RandomAccessFile documentIndexFile = new RandomAccessFile(DOCUMENT_INDEX_PATH, "rw")) {
 
             //Create an input stream for the tar archive
             TarArchiveInputStream tarInput = new TarArchiveInputStream(new GzipCompressorInputStream(fileInputStream));
@@ -79,7 +80,11 @@ public class Indexer {
                 //String to keep the current document processed
                 ParsedDocument parsedDocument;
 
+                //Random access file for document index
+
                 System.out.println("[INDEXER] Starting to fetch the documents...");
+
+                long begin = System.nanoTime();
 
                 //Iterate over the lines
                 while ((line = bufferedReader.readLine()) != null ) {
@@ -97,32 +102,38 @@ public class Indexer {
 
                         parsedDocument.setDocId(numberOfDocuments);
 
-                        System.out.println("[INDEXER] Doc: "+parsedDocument.docId + " read with " + parsedDocument.documentLength + "terms");
+                        //System.out.println("[INDEXER] Doc: "+parsedDocument.docId + " read with " + parsedDocument.documentLength + "terms");
                         invertedIndexBuilder.insertDocument(parsedDocument);
 
                         //Insert the document index row in the document index file. It's the building of the document
                         // index. The document index will be read from file in the future, the important is to build it
                         // and store it inside a file.
 
-                        parsedDocument.writeToDisk(DOCUMENT_INDEX_PATH);
+                        parsedDocument.writeToDisk(DOCUMENT_INDEX_PATH, documentIndexFile);
 
                         if(!isMemoryAvailable()){
                             System.out.println("[INDEXER] Memory over the threshold");
-                            // TODO: 22/12/2022  
                             invertedIndexBuilder.sortLexicon();
                             invertedIndexBuilder.sortInvertedIndex();
-                            invertedIndexBuilder.writeBlockToDisk(blockNumber);
+                            writeToFiles(invertedIndexBuilder, blockNumber);
                             System.out.println("[INDEXER] Block "+blockNumber+" written to disk");
                             blockNumber++;
                             blockDocuments = 0;
+                        }
+
+                        if(numberOfDocuments%5000 == 0){
+                            System.out.println("[INDEXER] " + numberOfDocuments+ " processed");
+                            System.out.println("[INDEXER] Processing time: " + (System.nanoTime() - begin)/1000000+ "ms");
+                            getMemoryUsed();
                         }
                     }
                 }
                 if(blockDocuments > 0 ){
 
-                    // TODO: 22/12/2022
-                    //invertedIndexBuilder.sortLexicon();
-                    //invertedIndexBuilder.writeBlockToDisk(blockNumber);
+                    System.out.println("[INDEXER] Last block reached");
+                    invertedIndexBuilder.sortLexicon();
+                    invertedIndexBuilder.sortInvertedIndex();
+                    writeToFiles(invertedIndexBuilder, blockNumber);
                     System.out.println("[INDEXER] Block "+blockNumber+" written to disk");
 
                     writeStatistics(blockNumber, numberOfDocuments);
@@ -132,7 +143,6 @@ public class Indexer {
                     writeStatistics(blockNumber-1, numberOfDocuments);
                     System.out.println("[INDEXER] Statistics of the blocks written to disk");
                 }
-                System.out.println("Document index: "+invertedIndexBuilder.documentIndex);
                 System.out.println("Inverted index: "+invertedIndexBuilder.invertedIndex);
                 System.out.println("Lexicon: " + invertedIndexBuilder.lexicon);
             }
@@ -167,13 +177,14 @@ public class Indexer {
     }
 
     private static void writeToFiles(InvertedIndexBuilder invertedIndexBuilder, int blockNumber){
-        //Write the block's lexicon into the given file
-        invertedIndexBuilder.writeLexiconToFile("src/main/resources/files/lexiconBlock"+blockNumber+".txt");
 
         //Write the inverted index's files into the block's files
         invertedIndexBuilder.writeInvertedIndexToFile(
                 "src/main/resources/files/invertedIndexDocIds"+blockNumber+".txt",
                 "src/main/resources/files/invertedIndexFrequencies"+blockNumber+".txt");
+
+        //Write the block's lexicon into the given file
+        invertedIndexBuilder.writeLexiconToFile("src/main/resources/files/lexiconBlock"+blockNumber+".txt");
 
         System.out.println("Block "+blockNumber+" written");
 
@@ -189,6 +200,15 @@ public class Indexer {
         long percentage_used_mem = used_mem/total_mem;
         //System.out.println("Amount of used memory: " + percentage_used_mem + "%");
         return (percentage_used_mem < Indexer.PERCENTAGE);
+    }
+
+    private static void getMemoryUsed(){
+        Runtime rt = Runtime.getRuntime();
+        long total_mem = rt.totalMemory();
+        long free_mem = rt.freeMemory();
+        long used_mem = total_mem - free_mem;
+        long percentage_used_mem = used_mem/total_mem;
+        System.out.println("Amount of used memory: " + percentage_used_mem + "%");
     }
 
 

@@ -22,6 +22,7 @@ public class Parser {
         String docno;
         String text;
 
+        //long begin = System.currentTimeMillis();
         // TODO: 03/11/2022 firstly check if the line is not malformed si is in the format <docno>\t<text>\n
 
         //Divide the line using \t as delimiter, it'll split the doc_id and the text
@@ -54,6 +55,8 @@ public class Parser {
             //Stemming
             splittedText = getStems(splittedText);
         }
+
+        //System.out.println("[DEBUG: PARSING DOCUMENT] " + (System.currentTimeMillis() - begin) + "ms");
 
         return new ParsedDocument(docno, splittedText);
         

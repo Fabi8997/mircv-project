@@ -45,26 +45,26 @@ public class ParsedDocument {
     }
 
 
-    public void writeToDisk(String outputPath){
-        try (RandomAccessFile randomAccessFile = new RandomAccessFile(outputPath, "rw")){
+    public void writeToDisk(String outputPath, RandomAccessFile randomAccessFile){
 
-                //Fill with whitespaces to keep the length standard
-                String tmp = Utils.leftpad(docNo, 48);
+        //Fill with whitespaces to keep the length standard
+        String tmp = Utils.leftpad(docNo, 48);
 
+        //long begin = System.nanoTime();
 
-                byte[] docId = ByteBuffer.allocate(4).putInt(this.docId).array();
-                byte[] docNo = ByteBuffer.allocate(48).put(tmp.getBytes()).array();
-                byte[] docLen = ByteBuffer.allocate(4).putInt(this.documentLength).array();
+        byte[] docId = ByteBuffer.allocate(4).putInt(this.docId).array();
+        byte[] docNo = ByteBuffer.allocate(48).put(tmp.getBytes()).array();
+        byte[] docLen = ByteBuffer.allocate(4).putInt(this.documentLength).array();
 
-                try {
-                    randomAccessFile.write(docId);
-                    randomAccessFile.write(docNo);
-                    randomAccessFile.write(docLen);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-        }catch (IOException e) {
+        try {
+            randomAccessFile.write(docId);
+            randomAccessFile.write(docNo);
+            randomAccessFile.write(docLen);
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
+        //System.out.println("[DEBUG: PARSING DOCUMENT] " + (System.nanoTime() - begin)/100000 + "ns");
+
     }
 }
