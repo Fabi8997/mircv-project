@@ -11,9 +11,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-// TODO: 27/10/2022 CHECK IF THE SPIMI ALGORITHM IS CORRECTLY IMPLEMENTED
-
-// TODO: 03/11/2022 ADD the document index part, we can generate it also in this part! 
 
 /**
  * Represent a component that gives the methods to build the lexicon and the inverted index for each block.
@@ -24,13 +21,7 @@ public class InvertedIndexBuilder {
     // value[0] -> TermId
     // value[1] -> offset in the posting list
     HashMap<String, TermInfo> lexicon;
-
-    TreeMap<String, TermInfo> sortedLexicon;
     HashMap<String, ArrayList<Posting>> invertedIndex;
-    HashMap<Integer, Integer> documentIndex;
-
-
-    int currTermID;
 
     /**
      * Constructor of the class.
@@ -41,15 +32,6 @@ public class InvertedIndexBuilder {
     public InvertedIndexBuilder() {
         lexicon = new HashMap<>();
         invertedIndex = new HashMap<>();
-        documentIndex = new HashMap<>();
-        currTermID = 1;
-    }
-
-    public InvertedIndexBuilder(int blockNumber) {
-        lexicon = new HashMap<>();
-        invertedIndex = new HashMap<>();
-        documentIndex = new HashMap<>();
-        currTermID = 1;
     }
 
     /**
@@ -58,9 +40,7 @@ public class InvertedIndexBuilder {
      */
     public void insertDocument(ParsedDocument parsedDocument) {
 
-        //Insert the information of the document in the document index for the block
-        documentIndex.put(parsedDocument.docId, parsedDocument.documentLength);
-
+        //long begin = System.currentTimeMillis();
         //Generate a stream of String
         Stream.of(parsedDocument.terms)
                 .forEach((term) -> {
@@ -111,9 +91,9 @@ public class InvertedIndexBuilder {
                         //Insert the new posting list
                         invertedIndex.put(term, postingsList);
 
-                        currTermID++;
                     }
                 });
+        //System.out.println("[DEBUG: INSERT DOCUMENT] " + (System.currentTimeMillis() - begin) + "ms");
     }
 
     /**
@@ -131,39 +111,17 @@ public class InvertedIndexBuilder {
     }
 
     /**
-     * Clear the instance of the document index, it must be used after the document index has been written in the disk.
-     */
-    private void clearDocumentIndex(){
-        documentIndex.clear();
-    }
-
-    /**
-     * Reset the current term id, it must be used before starting to process a new block.
-     */
-    private void clearTermId(){
-        currTermID = 1;
-    }
-
-    /**
      * Clear the class instances in order to be used for a new block processing.
      */
     public void clear(){
         clearLexicon();
         clearInvertedIndex();
-        clearDocumentIndex();
-        clearTermId();
-
     }
 
     /**
      * Sort the lexicon with complexity O(nlog(n)) where n is the # of elements in the lexicon.
      */
     public void sortLexicon(){
-
-        // TODO: 07/03/2023 !!! but now we've the double of the element in memory !!!
-
-        // TODO: 07/03/2023 Integer will be an array list of integer
-        //sortedLexicon = new TreeMap<>(lexicon);
 
         //To not double the memory
         lexicon = lexicon.entrySet()
@@ -309,10 +267,6 @@ public class InvertedIndexBuilder {
         }
 
         System.out.println("Lexicon after insertion: " + lexicon);
-    }
-
-    public void writeBlockToDisk(int blockNumber){
-
     }
 
     public static void main(String[] args){
