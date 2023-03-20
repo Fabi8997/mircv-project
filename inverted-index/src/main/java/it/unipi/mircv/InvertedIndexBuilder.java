@@ -184,7 +184,7 @@ public class InvertedIndexBuilder {
                                      .collect(Collectors.toMap(
                                             Map.Entry::getKey,
                                             Map.Entry::getValue,
-                                            (e1, e2) -> e1, HashMap::new));
+                                            (e1, e2) -> e1, LinkedHashMap::new));
 
     }
 
@@ -299,7 +299,7 @@ public class InvertedIndexBuilder {
                     currentOffset.addAndGet(4);
                 });
 
-                //Set the docId offset, the frequncy offset, the posting list length of the term in the lexicon
+                //Set the docId offset, the frequency offset, the posting list length of the term in the lexicon
                 lexicon.get(term).set(currentOffset.get(), currentOffset.get(), postingList.size());
 
             });
