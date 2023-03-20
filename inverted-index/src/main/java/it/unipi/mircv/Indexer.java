@@ -109,8 +109,9 @@ public class Indexer {
                         if(!isMemoryAvailable()){
                             System.out.println("[INDEXER] Memory over the threshold");
                             // TODO: 22/12/2022  
-                            //invertedIndexBuilder.sortLexicon();
-                            //invertedIndexBuilder.writeBlockToDisk(blockNumber);
+                            invertedIndexBuilder.sortLexicon();
+                            invertedIndexBuilder.sortInvertedIndex();
+                            invertedIndexBuilder.writeBlockToDisk(blockNumber);
                             System.out.println("[INDEXER] Block "+blockNumber+" written to disk");
                             blockNumber++;
                             blockDocuments = 0;
