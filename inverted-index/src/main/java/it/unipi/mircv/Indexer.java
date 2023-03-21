@@ -16,16 +16,21 @@ public class Indexer {
     //Counter to keep the number of blocks read
     static int blockNumber = 1;
 
+    //Path of the dataset
     static String COLLECTION_PATH = "src/main/resources/dataset/samplecompressed.tar.gz";
 
+    //Statistic file path
     static final String STATISTICS_PATH = "src/main/resources/files/statistics.txt";
 
+    //Document index file path
     static final String DOCUMENT_INDEX_PATH = "src/main/resources/files/document_index.txt";
 
-    static final double PERCENTAGE = 0.5;
+    //Percentage of memory used to define a threshold
+    static final double PERCENTAGE = 0.6;
 
     /**
-     * Build an inverted index for the collection in the given path
+     * Build an inverted index for the collection in the given path; it uses the SPIMI algorithm and build different
+     * blocks containing each one a partial inverted index and the respective lexicon.
      * @param path Path of the archive containing the collection, must be a tar.gz archive
      * @param stopwordsRemovalAndStemming true to apply the stopwords removal and stemming procedure, false otherwise
      */
@@ -80,11 +85,26 @@ public class Indexer {
                 //String to keep the current document processed
                 ParsedDocument parsedDocument;
 
-                //Random access file for document index
-
-                System.out.println("[INDEXER] Starting to fetch the documents...");
-
+                //Retrieve the time at the beginning of the computation
                 long begin = System.nanoTime();
+
+                //Retrieve the initial free memory
+                long initialMemory = Runtime.getRuntime().freeMemory();
+
+                //Retrieve the total memory allocated for the execution of the current runtime
+                long totalMemory = Runtime.getRuntime().totalMemory();
+
+                //Retrieve the memory used at the beginning of the computation
+                long beforeUsedMem=Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory();
+
+                //Define the threshold of memory over which the index must be flushed to disk
+                long THRESHOLD = (long) (totalMemory * PERCENTAGE);
+
+                System.out.println("[INDEXER] Initial total memory allocated "+ totalMemory/(1024*1024)+"MB");
+                System.out.println("[INDEXER] Initial free memory "+ initialMemory/(1024*1024)+"MB");
+                System.out.println("[INDEXER] Initial memory used "+ beforeUsedMem/(1024*1024)+"MB");
+                System.out.println("[INDEXER] Memory threshold: " + THRESHOLD/(1024*1024)+"MB -> 40%");
+                System.out.println("[INDEXER] Starting to fetch the documents...");
 
                 //Iterate over the lines
                 while ((line = bufferedReader.readLine()) != null ) {
@@ -97,9 +117,13 @@ public class Indexer {
                     //If the parsing of the document was completed correctly, it'll be appended to the collection buffer
                     if (parsedDocument!= null && parsedDocument.terms.length != 0) {
 
+                        //Increase the number of documents analyzed in total
                         numberOfDocuments++;
+
+                        //Increase the number of documents analyzed in the current block
                         blockDocuments++;
 
+                        //Set the current number of documents processed as the document identifier
                         parsedDocument.setDocId(numberOfDocuments);
 
                         //System.out.println("[INDEXER] Doc: "+parsedDocument.docId + " read with " + parsedDocument.documentLength + "terms");
@@ -108,43 +132,65 @@ public class Indexer {
                         //Insert the document index row in the document index file. It's the building of the document
                         // index. The document index will be read from file in the future, the important is to build it
                         // and store it inside a file.
-
                         parsedDocument.writeToDisk(DOCUMENT_INDEX_PATH, documentIndexFile);
 
-                        if(!isMemoryAvailable()){
+                        //Check if the memory used is above the threshold defined
+                        if(!isMemoryAvailable(THRESHOLD)){
                             System.out.println("[INDEXER] Memory over the threshold");
+                            System.out.println("[INDEXER] Flushing " + blockDocuments + " documents to disk...");
+
+                            //Sorting the lexicon and the inverted index
                             invertedIndexBuilder.sortLexicon();
                             invertedIndexBuilder.sortInvertedIndex();
+
+                            //Write the inverted index and the lexicon in the file
                             writeToFiles(invertedIndexBuilder, blockNumber);
-                            System.out.println("[INDEXER] Block "+blockNumber+" written to disk");
+
+                            System.out.println("[INDEXER] Block "+blockNumber+" written to disk!");
+
+                            //Handle the blocks' information
                             blockNumber++;
                             blockDocuments = 0;
+
+                            //Clear the inverted index data structure and call the garbage collector
+                            invertedIndexBuilder.clear();
                         }
 
-                        if(numberOfDocuments%5000 == 0){
+                        //Print checkpoint information
+                        if(numberOfDocuments%50000 == 0){
                             System.out.println("[INDEXER] " + numberOfDocuments+ " processed");
-                            System.out.println("[INDEXER] Processing time: " + (System.nanoTime() - begin)/1000000+ "ms");
-                            getMemoryUsed();
+                            System.out.println("[INDEXER] Processing time: " + (System.nanoTime() - begin)/1000000000+ "s");
                         }
                     }
                 }
                 if(blockDocuments > 0 ){
 
                     System.out.println("[INDEXER] Last block reached");
+                    System.out.println("[INDEXER] Flushing " + blockDocuments + " documents to disk...");
+
+                    //Sort the lexicon and the inverted index
                     invertedIndexBuilder.sortLexicon();
                     invertedIndexBuilder.sortInvertedIndex();
+
+                    //Write the inverted index and the lexicon in the file
                     writeToFiles(invertedIndexBuilder, blockNumber);
+
                     System.out.println("[INDEXER] Block "+blockNumber+" written to disk");
 
+                    //Write the blocks statistics
                     writeStatistics(blockNumber, numberOfDocuments);
+
                     System.out.println("[INDEXER] Statistics of the blocks written to disk");
 
                 }else{
+                    //Write the blocks statistics
                     writeStatistics(blockNumber-1, numberOfDocuments);
+
                     System.out.println("[INDEXER] Statistics of the blocks written to disk");
                 }
-                System.out.println("Inverted index: "+invertedIndexBuilder.invertedIndex);
-                System.out.println("Lexicon: " + invertedIndexBuilder.lexicon);
+
+                //Close the random access file of the document index
+                documentIndexFile.close();
             }
 
         } catch (IOException e) {
@@ -152,22 +198,32 @@ public class Indexer {
         }
     }
 
-
+    /**
+     * Write the statistics of the execution, in particular the number of blocks written and the total number of
+     * documents parsed.
+     * @param numberOfBlocks Number of blocks written
+     * @param numberOfDocs Number of documents parsed in total
+     */
     private static void writeStatistics(int numberOfBlocks, int numberOfDocs){
 
         //Object used to build the lexicon line into a string
         StringBuilder stringBuilder = new StringBuilder();
 
+        //Buffered writer used to format the output
         BufferedWriter bufferedWriter;
+
         try {
             bufferedWriter = new BufferedWriter(new FileWriter(Indexer.STATISTICS_PATH,true));
 
+            //build the string
             stringBuilder
                     .append(numberOfBlocks).append("\n")
                     .append(numberOfDocs).append("\n");
 
+            //Write the string in the file
             bufferedWriter.write(stringBuilder.toString());
 
+            //Close the writer
             bufferedWriter.close();
 
         } catch (IOException e) {
@@ -176,6 +232,12 @@ public class Indexer {
 
     }
 
+    /**
+     * Write the inverted index and the lexicon blocks, the number of the block is passed as parameter. At the end
+     * it clears the data structures and call the garbage collector
+     * @param invertedIndexBuilder Inverted index builder object containing the inverted index and the lexicon
+     * @param blockNumber Number of the block that will be written
+     */
     private static void writeToFiles(InvertedIndexBuilder invertedIndexBuilder, int blockNumber){
 
         //Write the inverted index's files into the block's files
@@ -188,33 +250,32 @@ public class Indexer {
 
         System.out.println("Block "+blockNumber+" written");
 
-        //Clear the data structures
+        //Clear the inverted index and lexicon data structure and call the garbage collector
         invertedIndexBuilder.clear();
     }
 
-    private static boolean isMemoryAvailable(){
-        Runtime rt = Runtime.getRuntime();
-        long total_mem = rt.totalMemory();
-        long free_mem = rt.freeMemory();
-        long used_mem = total_mem - free_mem;
-        long percentage_used_mem = used_mem/total_mem;
-        //System.out.println("Amount of used memory: " + percentage_used_mem + "%");
-        return (percentage_used_mem < Indexer.PERCENTAGE);
+    /**
+     * Return true if the memory used is under the threshold, so there is enough free memory to continue the computation
+     * otherwise it will return false.
+     * @param threshold Memory threshold in byte.
+     */
+    private static boolean isMemoryAvailable(long threshold){
+
+        //Subtract the free memory at the moment to the total memory allocated obtaining the memory used, then check
+        //if the memory used is above the threshold
+        return Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory() < threshold;
     }
 
-    private static void getMemoryUsed(){
+    /*//For debug
+    private static long getMemoryUsed(){
         Runtime rt = Runtime.getRuntime();
         long total_mem = rt.totalMemory();
         long free_mem = rt.freeMemory();
-        long used_mem = total_mem - free_mem;
-        long percentage_used_mem = used_mem/total_mem;
-        System.out.println("Amount of used memory: " + percentage_used_mem + "%");
-    }
+        return total_mem - free_mem;
+    }*/
 
 
     public static void main(String[] args){
         parseCollection(COLLECTION_PATH, Boolean.valueOf(args[1]));
-
-
     }
 }
