@@ -116,6 +116,11 @@ public class InvertedIndexBuilder {
     public void clear(){
         clearLexicon();
         clearInvertedIndex();
+
+        //Call the garbage collector to thrash the data structures cleared above, if it is not done the memory will be
+        // over the threshold until the gc will be called automatically, causing the writes of a block at every document
+        // processed after the trespassing of the threshold.
+        Runtime.getRuntime().gc();
     }
 
     /**
@@ -123,14 +128,14 @@ public class InvertedIndexBuilder {
      */
     public void sortLexicon(){
 
-        //To not double the memory
+        //To not double the memory instantiating a new data structure we've decided to use the following sorting
         lexicon = lexicon.entrySet()
                          .stream()
                          .sorted(Map.Entry.comparingByKey())
                          .collect(Collectors.toMap(
                                 Map.Entry::getKey,
                                 Map.Entry::getValue,
-                                (e1, e2) -> e1, LinkedHashMap::new));
+                                (e1, e2) -> e1, LinkedHashMap::new)); //LinkedHashMap to keep O(1) time complexity
 
     }
 
@@ -266,7 +271,7 @@ public class InvertedIndexBuilder {
             throw new RuntimeException(e);
         }
 
-        System.out.println("Lexicon after insertion: " + lexicon);
+        //System.out.println("Lexicon after insertion: " + lexicon);
     }
 
     public static void main(String[] args){
