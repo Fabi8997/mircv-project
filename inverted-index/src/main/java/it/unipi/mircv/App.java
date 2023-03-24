@@ -1,14 +1,11 @@
 package it.unipi.mircv;
 
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -21,28 +18,7 @@ public class App
 
     public static void main( String[] args )
     {
-        /*InvertedIndexBuilder invertedIndexBuilder = new InvertedIndexBuilder();
-
-        String str1= "A bijection from the set X to the set Y has an inverse function from Y to X";
-        String str2 = "In mathematics a bijection also known as a bijective function one to one correspondence or invertible function";
-        String str3 = "here are no unpaired elements between the two sets";
-        String str4 = "If X and Y are finite sets then the existence of a bijection means they have the same number of elements";
-        String str5 = "A bijective function from a set to itself is also called a permutation";
-
-        invertedIndexBuilder.insertDocument(new ParsedDocument(1,str1.split(" "),"1"));
-        invertedIndexBuilder.insertDocument(new ParsedDocument(2,str2.split(" "),"2"));
-        invertedIndexBuilder.insertDocument(new ParsedDocument(3,str3.split(" "),"3"));
-
-        invertedIndexBuilder.sortLexicon();
-        invertedIndexBuilder.sortInvertedIndex();
-        writeToFiles(invertedIndexBuilder, 1);
-
-        invertedIndexBuilder.insertDocument(new ParsedDocument(4,str4.split(" "),"4"));
-        invertedIndexBuilder.insertDocument(new ParsedDocument(5,str5.split(" "),"5"));
-
-        invertedIndexBuilder.sortLexicon();
-        invertedIndexBuilder.sortInvertedIndex();
-        writeToFiles(invertedIndexBuilder, 2);*/
+        //createBlocks();
 
         Statistics statistics = readStatistics();
         System.out.println(statistics);
@@ -50,22 +26,137 @@ public class App
         RandomAccessFile[] randomAccessFileDocIds = new RandomAccessFile[statistics.numberOfBlocks];
         RandomAccessFile[] randomAccessFilesFrequencies = new RandomAccessFile[statistics.numberOfBlocks];
         RandomAccessFile[] randomAccessFilesLexicon = new RandomAccessFile[statistics.numberOfBlocks];
+        int[] offsets = new int[statistics.numberOfBlocks];
+
+        for(int i = 0; i < statistics.numberOfBlocks; i++) {
+            offsets[i] = 0;
+        }
 
         try {
             for (int i = 0; i < statistics.numberOfBlocks; i++) {
-                randomAccessFileDocIds[i] = new RandomAccessFile("src/main/resources/files/invertedIndexDocIds"+i+".txt", "r");
-                randomAccessFilesFrequencies[i] = new RandomAccessFile("src/main/resources/files/invertedIndexFrequencies"+i+".txt", "r");
-                randomAccessFilesLexicon[i] = new RandomAccessFile("src/main/resources/files/lexiconBlock"+i+".txt", "r");
+                randomAccessFileDocIds[i] = new RandomAccessFile("src/main/resources/files/invertedIndexDocIds"+(i+1)+".txt", "r");
+                randomAccessFilesFrequencies[i] = new RandomAccessFile("src/main/resources/files/invertedIndexFrequencies"+(i+1)+".txt", "r");
+                randomAccessFilesLexicon[i] = new RandomAccessFile("src/main/resources/files/lexiconBlock"+(i+1)+".txt", "r");
             }
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
 
-        // TODO: 24/03/2023 Implementation of the k-way merge algorithm 
+
+        String minTerm = null;
+        TermInfo curTerm;
+        LinkedList<Integer> blocksWithMinTerm = new LinkedList<>();
+        boolean[] endOfBlock = new boolean[statistics.numberOfBlocks];
+        for (int i = 0; i < statistics.numberOfBlocks; i++) {
+            endOfBlock[i] = false;
+        }
+
+
+        // TODO: 24/03/2023 Implementation of the k-way merge algorithm
+
+        while(!endOfAllFiles(endOfBlock, statistics.numberOfBlocks)) {
+            System.out.println("ITERATION STARTED");
+            for(int i = 0; i < statistics.numberOfBlocks; i++) {
+
+                //Read the current term in the lexicon block
+                curTerm = readNextTermInfo(randomAccessFilesLexicon[i],offsets[i],true);
+
+                if(curTerm == null) {
+                    endOfBlock[i] = true;
+                    continue;
+                }
+
+                //If the current term is the lexicographically smaller than the min term, then update the min term.
+                if(minTerm == null || curTerm.getTerm().compareTo(minTerm) < 0) {
+                    minTerm = curTerm.getTerm();
+                    blocksWithMinTerm.clear();
+                    blocksWithMinTerm.add(i);
+                    //Else if the current term is equal to the min term, then add the current block to the list of blocks with the min term.
+                } else if (curTerm.getTerm().compareTo(minTerm) == 0) {
+                    blocksWithMinTerm.add(i);
+                }
+            }
+            if(endOfAllFiles(endOfBlock, statistics.numberOfBlocks)) {
+                System.out.println("END OF ALL FILES");
+                break;
+            }
+
+            System.out.println("----------- TERM: " + minTerm + " -----------");
+            System.out.println(blocksWithMinTerm);
+            TermInfo currentTermInfo = null;
+            ArrayList<Integer> docIds = new ArrayList<>();
+            ArrayList<Integer> frequencies = new ArrayList<>();
+            for (Integer integer : blocksWithMinTerm) {
+                System.out.println("Block " + integer + ":");
+
+                currentTermInfo = readNextTermInfo(randomAccessFilesLexicon[integer], offsets[integer], false);
+                if(currentTermInfo == null) {
+                    continue;
+                }
+                offsets[integer] += 60;
+                System.out.println("DOCID-"+integer+": " + readPostingListDocIds(randomAccessFileDocIds[integer], currentTermInfo.getOffsetDocId(), currentTermInfo.getPostingListLength()));
+                docIds.addAll(readPostingListDocIds(randomAccessFileDocIds[integer], currentTermInfo.getOffsetDocId(), currentTermInfo.getPostingListLength()));
+                System.out.println("FREQ-"+integer+": " + readPostingListFrequencies(randomAccessFilesFrequencies[integer], currentTermInfo.getOffsetFrequency(), currentTermInfo.getPostingListLength()));
+                frequencies.addAll(readPostingListFrequencies(randomAccessFilesFrequencies[integer], currentTermInfo.getOffsetFrequency(), currentTermInfo.getPostingListLength()));
+            }
+            // TODO: 25/03/2023 Instead of printing, write to a file.
+            System.out.println("DocIds-merged:" + docIds);
+            System.out.println("Frequencies-merged" + frequencies);
+
+            //System.out.println(Arrays.toString(offsets));
+
+            System.out.println("----------------------");
+            minTerm = null;
+            blocksWithMinTerm.clear();
+        }
 
     }
 
-    public TermInfo readLexiconFromFile(RandomAccessFile randomAccessFileLexicon, int offset){
+
+    private static void createBlocks(){
+        InvertedIndexBuilder invertedIndexBuilder = new InvertedIndexBuilder();
+
+        String str1= "A bijection from the set X to the set Y has an inverse function from Y to X";
+        String str2 = "In mathematics a bijection also known as a bijective function one to one correspondence or invertible function";
+        String str3 = "here are no unpaired elements between the two sets";
+        String str4 = "If X and Y are finite sets then the existence of a bijection means they have the same number of elements";
+        String str5 = "A bijective function from a set to itself is also called a permutation";
+        String str6 = "unpaired to between to permutation set";
+
+        invertedIndexBuilder.insertDocument(new ParsedDocument(1,str1.toLowerCase().split(" "),"1"));
+        invertedIndexBuilder.insertDocument(new ParsedDocument(2,str2.toLowerCase().split(" "),"2"));
+        invertedIndexBuilder.insertDocument(new ParsedDocument(3,str3.toLowerCase().split(" "),"3"));
+
+        invertedIndexBuilder.sortLexicon();
+        invertedIndexBuilder.sortInvertedIndex();
+        writeToFiles(invertedIndexBuilder, 1);
+
+        invertedIndexBuilder.insertDocument(new ParsedDocument(4,str4.toLowerCase().split(" "),"4"));
+        invertedIndexBuilder.insertDocument(new ParsedDocument(5,str5.toLowerCase().split(" "),"5"));
+
+        invertedIndexBuilder.sortLexicon();
+        invertedIndexBuilder.sortInvertedIndex();
+        writeToFiles(invertedIndexBuilder, 2);
+
+        invertedIndexBuilder.insertDocument(new ParsedDocument(6,str6.toLowerCase().split(" "),"6"));
+
+        invertedIndexBuilder.sortLexicon();
+        invertedIndexBuilder.sortInvertedIndex();
+        writeToFiles(invertedIndexBuilder, 3);
+    }
+
+    // TODO: 25/03/2023 DONE
+    private static boolean endOfAllFiles(boolean[] endOfBlocks, int numberOfBlocks) {
+
+        for(int i = 0; i < numberOfBlocks; i++) {
+            if(!endOfBlocks[i])
+                return false;
+        }
+        return true;
+    }
+
+    // TODO: 24/03/2023 DONE
+    public static TermInfo readNextTermInfo(RandomAccessFile randomAccessFileLexicon, int offset, boolean resetOffset) {
 
         byte[] b;
         String term;
@@ -73,16 +164,22 @@ public class App
         TermInfo termInfo;
 
         try {
-            randomAccessFileLexicon.readFully(b, offset, 48);
+            //System.out.println("[readNextTermInfo] Reading term info from file");
+            //System.out.println("[readNextTermInfo] randomAccessFileLexicon.length: " + randomAccessFileLexicon.length());
+            //System.out.println("[readNextTermInfo] Offset: " + offset);
+            randomAccessFileLexicon.seek(offset);
+            randomAccessFileLexicon.readFully(b, 0, 48);
             term = new String(b, Charset.defaultCharset()).trim();
             termInfo = new TermInfo(term, randomAccessFileLexicon.readInt(), randomAccessFileLexicon.readInt(), randomAccessFileLexicon.readInt());
-            randomAccessFileLexicon.seek(offset);
+            if(resetOffset)
+                randomAccessFileLexicon.seek(offset);
             return termInfo;
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            return null;
         }
     }
 
+    // TODO: 24/03/2023 DONE
     private static Statistics readStatistics(){
         return new Statistics();
     }
@@ -105,8 +202,6 @@ public class App
         //Clear the inverted index and lexicon data structure and call the garbage collector
         invertedIndexBuilder.clear();
     }
-
-
 
     public static void writeInvertedIndexToFile(String outputPathDocIds, String outputPathFrequencies){
 
@@ -155,6 +250,58 @@ public class App
         catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    //TODO: 24/03/2023 DONE
+    private static ArrayList<Integer> readPostingListDocIds(RandomAccessFile randomAccessFileDocIds, int offset, int length) {
+
+        byte[] b = new byte[4];
+        long rafLength = 0;
+
+        ArrayList<Integer> list = new ArrayList<>();
+
+        try {
+            randomAccessFileDocIds.seek(offset);
+            rafLength = randomAccessFileDocIds.length();
+        } catch (IOException e) {
+            System.err.println("[ReadPostingListDocIds] Exception during seek");
+            throw new RuntimeException(e);
+        }
+        for(int i = 0; i < length; i ++) {
+            try {
+                list.add(randomAccessFileDocIds.readInt());
+            } catch (IOException e) {
+                System.err.println("[ReadPostingListDocIds] Exception during read");
+                System.err.println("[ReadPostingListDocIds] randomAccessFileDocIds.length: " + rafLength);
+                System.err.println("[ReadPostingListDocIds] offset: " + offset);
+                System.err.println("[ReadPostingListDocIds] length: " + length);
+                throw new RuntimeException(e);
+            }
+        }
+        return list;
+    }
+
+    //TODO: 24/03/2023 DONE
+    private static ArrayList<Integer> readPostingListFrequencies(RandomAccessFile randomAccessFileFrequencies, int offset, int length) {
+        byte[] b = new byte[4];
+
+        ArrayList<Integer> list = new ArrayList<>();
+
+        try {
+            randomAccessFileFrequencies.seek(offset);
+        } catch (IOException e) {
+            System.err.println("[ReadPostingListFrequencies] Exception during seek");
+            throw new RuntimeException(e);
+        }
+        for(int i = 0; i < length; i ++) {
+            try {
+                list.add(randomAccessFileFrequencies.readInt());
+            } catch (IOException e) {
+                System.err.println("[ReadPostingListFrequencies] Exception during read");
+                throw new RuntimeException(e);
+            }
+        }
+        return list;
     }
 
     private static void prova(){

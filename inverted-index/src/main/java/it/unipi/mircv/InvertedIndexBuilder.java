@@ -246,6 +246,10 @@ public class InvertedIndexBuilder {
             //for each element of the inverted index
             invertedIndex.forEach((term, postingList) -> {
 
+                //Set the current offsets to be written in the lexicon
+                int offsetDocId = currentOffset.get();
+                int offsetFrequency = currentOffset.get();
+
                 postingList.forEach(posting -> {
                     //Create the buffers for each element to be written
                     byte[] postingDocId = ByteBuffer.allocate(4).putInt(posting.getDoc_id()).array();
@@ -259,23 +263,22 @@ public class InvertedIndexBuilder {
                         throw new RuntimeException(e);
                     }
 
+                    //Increment the current offset
                     currentOffset.addAndGet(4);
                 });
 
                 //Set the docId offset, the frequency offset, the posting list length of the term in the lexicon
-                lexicon.get(term).set(currentOffset.get(), currentOffset.get(), postingList.size());
+                lexicon.get(term).set(offsetDocId, offsetFrequency, postingList.size());
 
             });
         }catch (IOException e) {
             System.err.println("Exception during file creation of block");
             throw new RuntimeException(e);
         }
-
-        //System.out.println("Lexicon after insertion: " + lexicon);
     }
 
     public static void main(String[] args){
-        InvertedIndexBuilder indexBuilder = new InvertedIndexBuilder();
+        /*InvertedIndexBuilder indexBuilder = new InvertedIndexBuilder();
         indexBuilder.insertDocument(new ParsedDocument(1,new String[]{"d","b","g","r","a","p","a"},"21"));
         indexBuilder.insertDocument(new ParsedDocument(3,new String[]{"h","b","t","b","1","u","b"},"e21"));
         System.out.println(indexBuilder.invertedIndex);
@@ -286,10 +289,7 @@ public class InvertedIndexBuilder {
         indexBuilder.writeInvertedIndexToFile("src/main/resources/files/provaDocId.txt", "src/main/resources/files/provaFreq.txt");
         indexBuilder.writeLexiconToFile("src/main/resources/files/provaWrite.txt");
         System.out.println("\n\n WRITTEN \n\n");
-        System.out.println(indexBuilder.readLexiconFromFile("src/main/resources/files/provaWrite.txt"));
-
-
-
+        System.out.println(indexBuilder.readLexiconFromFile("src/main/resources/files/provaWrite.txt"));*/
     }
 
 
