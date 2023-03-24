@@ -1,11 +1,14 @@
 package it.unipi.mircv;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -18,24 +21,92 @@ public class App
 
     public static void main( String[] args )
     {
-        /*ArrayList<Posting> pl = new ArrayList<>();
-        pl.add(new Posting(1,4));
-        pl.add(new Posting(2,3));
-        pl.add(new Posting(3,12));
+        /*InvertedIndexBuilder invertedIndexBuilder = new InvertedIndexBuilder();
 
-        invertedIndex.put("term1", pl);
+        String str1= "A bijection from the set X to the set Y has an inverse function from Y to X";
+        String str2 = "In mathematics a bijection also known as a bijective function one to one correspondence or invertible function";
+        String str3 = "here are no unpaired elements between the two sets";
+        String str4 = "If X and Y are finite sets then the existence of a bijection means they have the same number of elements";
+        String str5 = "A bijective function from a set to itself is also called a permutation";
 
-        pl = new ArrayList<>();
-        pl.add(new Posting(1,3));
-        pl.add(new Posting(2,1));
-        pl.add(new Posting(3,6));
+        invertedIndexBuilder.insertDocument(new ParsedDocument(1,str1.split(" "),"1"));
+        invertedIndexBuilder.insertDocument(new ParsedDocument(2,str2.split(" "),"2"));
+        invertedIndexBuilder.insertDocument(new ParsedDocument(3,str3.split(" "),"3"));
 
-        invertedIndex.put("term2", pl);
+        invertedIndexBuilder.sortLexicon();
+        invertedIndexBuilder.sortInvertedIndex();
+        writeToFiles(invertedIndexBuilder, 1);
 
-        writeInvertedIndexToFile("src/main/resources/files/docids.txt",
-                "src/main/resources/files/freqs.txt");*/
-        readInvertedIndex();
+        invertedIndexBuilder.insertDocument(new ParsedDocument(4,str4.split(" "),"4"));
+        invertedIndexBuilder.insertDocument(new ParsedDocument(5,str5.split(" "),"5"));
+
+        invertedIndexBuilder.sortLexicon();
+        invertedIndexBuilder.sortInvertedIndex();
+        writeToFiles(invertedIndexBuilder, 2);*/
+
+        Statistics statistics = readStatistics();
+        System.out.println(statistics);
+
+        RandomAccessFile[] randomAccessFileDocIds = new RandomAccessFile[statistics.numberOfBlocks];
+        RandomAccessFile[] randomAccessFilesFrequencies = new RandomAccessFile[statistics.numberOfBlocks];
+        RandomAccessFile[] randomAccessFilesLexicon = new RandomAccessFile[statistics.numberOfBlocks];
+
+        try {
+            for (int i = 0; i < statistics.numberOfBlocks; i++) {
+                randomAccessFileDocIds[i] = new RandomAccessFile("src/main/resources/files/invertedIndexDocIds"+i+".txt", "r");
+                randomAccessFilesFrequencies[i] = new RandomAccessFile("src/main/resources/files/invertedIndexFrequencies"+i+".txt", "r");
+                randomAccessFilesLexicon[i] = new RandomAccessFile("src/main/resources/files/lexiconBlock"+i+".txt", "r");
+            }
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+
+        // TODO: 24/03/2023 Implementation of the k-way merge algorithm 
+
     }
+
+    public TermInfo readLexiconFromFile(RandomAccessFile randomAccessFileLexicon, int offset){
+
+        byte[] b;
+        String term;
+        b = new byte[48];
+        TermInfo termInfo;
+
+        try {
+            randomAccessFileLexicon.readFully(b, offset, 48);
+            term = new String(b, Charset.defaultCharset()).trim();
+            termInfo = new TermInfo(term, randomAccessFileLexicon.readInt(), randomAccessFileLexicon.readInt(), randomAccessFileLexicon.readInt());
+            randomAccessFileLexicon.seek(offset);
+            return termInfo;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static Statistics readStatistics(){
+        return new Statistics();
+    }
+
+    private static void writeToFiles(InvertedIndexBuilder invertedIndexBuilder, int blockNumber){
+
+        //Write the inverted index's files into the block's files
+        invertedIndexBuilder.writeInvertedIndexToFile(
+                "src/main/resources/files/invertedIndexDocIds"+blockNumber+".txt",
+                "src/main/resources/files/invertedIndexFrequencies"+blockNumber+".txt");
+
+        //Write the block's lexicon into the given file
+        invertedIndexBuilder.writeLexiconToFile("src/main/resources/files/lexiconBlock"+blockNumber+".txt");
+
+        System.out.println("Block "+blockNumber+" written");
+
+        System.out.println("Inverted index: \n"+invertedIndexBuilder.invertedIndex);
+        System.out.println("Lexicon: \n"+invertedIndexBuilder.lexicon);
+
+        //Clear the inverted index and lexicon data structure and call the garbage collector
+        invertedIndexBuilder.clear();
+    }
+
+
 
     public static void writeInvertedIndexToFile(String outputPathDocIds, String outputPathFrequencies){
 
@@ -66,8 +137,8 @@ public class App
         }
     }
 
-    private static void readInvertedIndex(){
-        try (RandomAccessFile randomAccessFile = new RandomAccessFile("src/main/resources/files/freqs.txt", "rw");){
+    private static void readInvertedIndex(int block){
+        try (RandomAccessFile randomAccessFile = new RandomAccessFile("src/main/resources/files/invertedIndexDocIds"+block+".txt", "rw");){
 
             byte[] b = new byte[4];
 
