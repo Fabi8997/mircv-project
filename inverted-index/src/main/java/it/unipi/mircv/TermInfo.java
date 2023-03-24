@@ -2,10 +2,17 @@ package it.unipi.mircv;
 
 public class TermInfo {
 
+    private String term;
     private int offsetDocId;
     private int offsetFrequency;
     private int postingListLength;
 
+    public TermInfo(String term, int offsetDocId, int offsetFrequency, int postingListLength) {
+        this.term = term;
+        this.offsetDocId = offsetDocId;
+        this.offsetFrequency = offsetFrequency;
+        this.postingListLength = postingListLength;
+    }
 
     public TermInfo(int offsetDocId, int offsetFrequency, int postingListLength) {
         this.offsetDocId = offsetDocId;
@@ -17,6 +24,10 @@ public class TermInfo {
         this.offsetDocId = 0;
         this.offsetFrequency = 0;
         this.postingListLength = 0;
+    }
+
+    public String getTerm() {
+        return term;
     }
 
     public int getOffsetDocId() {

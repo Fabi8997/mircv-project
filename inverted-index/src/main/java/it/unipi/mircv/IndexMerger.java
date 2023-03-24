@@ -1,17 +1,12 @@
 package it.unipi.mircv;
 
+import java.io.FileNotFoundException;
+import java.io.RandomAccessFile;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
 
 
-// TODO: 03/11/2022 Read the blocks in a taat or daat way in order to form the posting and the overall lexicon
 public class IndexMerger {
-
-    final int NUMBER_OF_BLOCKS;
 
     final String INVERTED_INDEX_DOC_IDS_BLOCK_PATH = "src/main/resources/files/invertedIndexDocIds";
 
@@ -31,47 +26,34 @@ public class IndexMerger {
 
     LinkedList<LinkedList<Integer>> invertedIndexFrequenciesBlock;
 
-    IndexMerger(){
-        NUMBER_OF_BLOCKS = new Statistics().numberOfBlocks;
-        lexicon = new HashMap<>();
-        lexiconBlock = new HashMap<>();
-        invertedIndexDocIdsBlock = new LinkedList<>();
-        invertedIndexFrequenciesBlock = new LinkedList<>();
-    }
+    static void merge() {
+        Statistics statistics = readStatistics();
+        System.out.println(statistics);
 
-    public void mergeBlocks(){
+        RandomAccessFile[] randomAccessFileDocIds = new RandomAccessFile[statistics.numberOfBlocks];
+        RandomAccessFile[] randomAccessFilesFrequencies = new RandomAccessFile[statistics.numberOfBlocks];
+        RandomAccessFile[] randomAccessFilesLexicon = new RandomAccessFile[statistics.numberOfBlocks];
 
-        for(int i = 1; i <= NUMBER_OF_BLOCKS; i++){
-            loadLexiconBlock(i);
-
-        }
-
-    }
-
-    private void loadLexiconBlock(int block){
-        try
-        {
-            File file=new File(LEXICON_BLOCK_PATH + block + ".txt");    //creates a new file instance
-            FileReader fr=new FileReader(file);   //reads the file
-            BufferedReader br=new BufferedReader(fr);  //creates a buffering character input stream
-            String line;
-            while((line=br.readLine())!=null)
-            {
-                String[] words = line.split("\t");   //line feed
-                lexiconBlock.put(words[0], Integer.parseInt(words[1]) );
+        try {
+            for (int i = 0; i < statistics.numberOfBlocks; i++) {
+                randomAccessFileDocIds[i] = new RandomAccessFile("src/main/resources/files/invertedIndexDocIds"+i+".txt", "r");
+                randomAccessFilesFrequencies[i] = new RandomAccessFile("src/main/resources/files/invertedIndexFrequencies"+i+".txt", "r");
+                randomAccessFilesLexicon[i] = new RandomAccessFile("src/main/resources/files/lexiconBlock"+i+".txt", "r");
             }
-            fr.close();    //closes the stream and release the resources
-            System.out.println("Contents of File: " + lexiconBlock.toString());
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
 
-        }
-        catch(IOException e)
-        {
-            e.printStackTrace();
-        }
+        mergeBlocks(randomAccessFileDocIds, randomAccessFilesFrequencies, randomAccessFilesLexicon);
+
     }
 
-    public static void main(String[] args){
-        IndexMerger indexMerger= new IndexMerger();
-        indexMerger.mergeBlocks();
+    private static void mergeBlocks(RandomAccessFile[] randomAccessFileDocIds, RandomAccessFile[] randomAccessFilesFrequencies, RandomAccessFile[] randomAccessFilesLexicon) {
+
     }
+
+    private static Statistics readStatistics(){
+        return new Statistics();
+    }
+
 }

@@ -8,9 +8,17 @@ import java.util.HashMap;
 
 public class Statistics {
 
-    final String PATH = "src/main/resources/files/statistics";
+    final String PATH = "src/main/resources/files/statistics.txt";
     int numberOfBlocks;
     int numberOfDocuments;
+
+    @Override
+    public String toString() {
+        return "Statistics{" +
+                "numberOfBlocks=" + numberOfBlocks +
+                ", numberOfDocuments=" + numberOfDocuments +
+                '}';
+    }
 
     public Statistics() {
         try {
