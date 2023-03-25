@@ -1,4 +1,4 @@
-package it.unipi.mircv;
+package it.unipi.mircv.beans;
 
 public class Posting {
     Integer doc_id;
@@ -17,6 +17,9 @@ public class Posting {
         return frequency;
     }
 
+    public void incrementFrequency() {
+        frequency++;
+    }
     @Override
     public String toString() {
         return "Posting{" +

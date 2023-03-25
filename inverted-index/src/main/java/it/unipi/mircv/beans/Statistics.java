@@ -1,16 +1,15 @@
-package it.unipi.mircv;
+package it.unipi.mircv.beans;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.HashMap;
 
 public class Statistics {
 
     final String PATH = "src/main/resources/files/statistics.txt";
-    int numberOfBlocks;
-    int numberOfDocuments;
+    private int numberOfBlocks;
+    private int numberOfDocuments;
 
     @Override
     public String toString() {
@@ -45,4 +44,9 @@ public class Statistics {
             e.printStackTrace();
         }
     }
+
+    public int getNumberOfBlocks() {
+        return numberOfBlocks;
+    }
+
 }

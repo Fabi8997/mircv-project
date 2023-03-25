@@ -1,5 +1,8 @@
-package it.unipi.mircv;
+package it.unipi.mircv.builder;
 
+import it.unipi.mircv.beans.ParsedDocument;
+import it.unipi.mircv.beans.Posting;
+import it.unipi.mircv.beans.TermInfo;
 import it.unipi.mircv.utils.Utils;
 
 import java.io.IOException;
@@ -42,7 +45,7 @@ public class InvertedIndexBuilder {
 
         //long begin = System.currentTimeMillis();
         //Generate a stream of String
-        Stream.of(parsedDocument.terms)
+        Stream.of(parsedDocument.getTerms())
                 .forEach((term) -> {
                     //If the term is already present in the lexicon
                     if(lexicon.containsKey(term)){
@@ -58,10 +61,10 @@ public class InvertedIndexBuilder {
                         for(Posting p : termPostingList){
 
                             //If the doc id is present, increment the frequency and terminate the loop
-                            if(p.getDoc_id() == parsedDocument.docId){
+                            if(p.getDoc_id() == parsedDocument.getDocId()){
 
                                 //Increment the frequency of the doc id
-                                p.frequency++;
+                                p.incrementFrequency();
 
                                 found = true;
                                 break;
@@ -72,7 +75,7 @@ public class InvertedIndexBuilder {
                         if(!found){
 
                             //Posting added to the posting list of the term
-                            termPostingList.add(new Posting(parsedDocument.docId, 1));
+                            termPostingList.add(new Posting(parsedDocument.getDocId(), 1));
                         }
                     }
                     //If the term was not present in the lexicon
@@ -85,7 +88,7 @@ public class InvertedIndexBuilder {
 
                         //Insert a new posting list in the inverted index
                         ArrayList<Posting> postingsList = new ArrayList<>();
-                        Posting posting = new Posting(parsedDocument.docId, 1);
+                        Posting posting = new Posting(parsedDocument.getDocId(), 1);
                         postingsList.add(posting);
 
                         //Insert the new posting list
@@ -138,7 +141,9 @@ public class InvertedIndexBuilder {
                                 (e1, e2) -> e1, LinkedHashMap::new)); //LinkedHashMap to keep O(1) time complexity
 
     }
-
+    /**
+     * Sort the inverted index with complexity O(nlog(n)) where n is the # of elements in the inverted index.
+     */
     public void sortInvertedIndex(){
 
         invertedIndex = invertedIndex.entrySet()
@@ -276,6 +281,15 @@ public class InvertedIndexBuilder {
             throw new RuntimeException(e);
         }
     }
+
+    public HashMap<String, TermInfo> getLexicon() {
+        return lexicon;
+    }
+    
+    public HashMap<String, ArrayList<Posting>> getInvertedIndex() {
+        return invertedIndex;
+    }
+
 
     public static void main(String[] args){
         /*InvertedIndexBuilder indexBuilder = new InvertedIndexBuilder();

@@ -1,5 +1,7 @@
 package it.unipi.mircv;
 
+import it.unipi.mircv.beans.ParsedDocument;
+import it.unipi.mircv.builder.InvertedIndexBuilder;
 import it.unipi.mircv.parser.Parser;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -115,7 +117,7 @@ public class Indexer {
                     parsedDocument = Parser.processDocument(line, stopwordsRemovalAndStemming, stopwords);
 
                     //If the parsing of the document was completed correctly, it'll be appended to the collection buffer
-                    if (parsedDocument!= null && parsedDocument.terms.length != 0) {
+                    if (parsedDocument!= null && parsedDocument.getTerms().length != 0) {
 
                         //Increase the number of documents analyzed in total
                         numberOfDocuments++;
@@ -132,7 +134,7 @@ public class Indexer {
                         //Insert the document index row in the document index file. It's the building of the document
                         // index. The document index will be read from file in the future, the important is to build it
                         // and store it inside a file.
-                        parsedDocument.writeToDisk(DOCUMENT_INDEX_PATH, documentIndexFile);
+                        parsedDocument.writeToDisk(documentIndexFile);
 
                         //Check if the memory used is above the threshold defined
                         if(!isMemoryAvailable(THRESHOLD)){
@@ -276,6 +278,9 @@ public class Indexer {
 
 
     public static void main(String[] args){
+        //Create the inverted index
         parseCollection(COLLECTION_PATH, Boolean.valueOf(args[1]));
+
+        // TODO: 25/03/2023 Merge the inverted index and the lexicon
     }
 }

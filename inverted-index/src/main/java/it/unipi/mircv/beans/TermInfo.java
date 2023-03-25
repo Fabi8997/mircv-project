@@ -1,4 +1,4 @@
-package it.unipi.mircv;
+package it.unipi.mircv.beans;
 
 public class TermInfo {
 

@@ -1,6 +1,6 @@
 package it.unipi.mircv.parser;
 
-import it.unipi.mircv.ParsedDocument;
+import it.unipi.mircv.beans.ParsedDocument;
 import opennlp.tools.stemmer.PorterStemmer;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,7 +46,7 @@ public class Parser {
 
 
         //Remove punctuation
-        String[] splittedText = removePunctuation(text).split(" ");;
+        String[] splittedText = removePunctuation(text).split(" ");
 
         if(stopwordsRemovalAndStemming) {
             //Remove stop words
