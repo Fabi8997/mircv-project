@@ -20,6 +20,12 @@ public class App
     {
         //createBlocks();
 
+        //merge();
+
+    }
+
+
+    public static void merge(){
         Statistics statistics = readStatistics();
         System.out.println(statistics);
 
@@ -109,10 +115,7 @@ public class App
             minTerm = null;
             blocksWithMinTerm.clear();
         }
-
     }
-
-
     private static void createBlocks(){
         InvertedIndexBuilder invertedIndexBuilder = new InvertedIndexBuilder();
 
@@ -271,10 +274,10 @@ public class App
             try {
                 list.add(randomAccessFileDocIds.readInt());
             } catch (IOException e) {
-                System.err.println("[ReadPostingListDocIds] Exception during read");
+                /*System.err.println("[ReadPostingListDocIds] Exception during read");
                 System.err.println("[ReadPostingListDocIds] randomAccessFileDocIds.length: " + rafLength);
                 System.err.println("[ReadPostingListDocIds] offset: " + offset);
-                System.err.println("[ReadPostingListDocIds] length: " + length);
+                System.err.println("[ReadPostingListDocIds] length: " + length);*/
                 throw new RuntimeException(e);
             }
         }

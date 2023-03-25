@@ -5,55 +5,169 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedList;
 
 
 public class IndexMerger {
 
-    final String INVERTED_INDEX_DOC_IDS_BLOCK_PATH = "src/main/resources/files/invertedIndexDocIds";
+    final static String INVERTED_INDEX_DOC_IDS_BLOCK_PATH = "src/main/resources/files/invertedIndexDocIds";
+    final static String INVERTED_INDEX_FREQUENCIES_BLOCK_PATH = "src/main/resources/files/invertedIndexFrequencies";
+    final static String LEXICON_BLOCK_PATH = "src/main/resources/files/lexiconBlock";
 
-    final String INVERTED_INDEX_FREQUENCIES_BLOCK_PATH = "src/main/resources/files/invertedIndexFrequencies";
+    final static String LEXICON_PATH = "src/main/resources/files/lexicon.txt";
 
-    final String LEXICON_BLOCK_PATH = "src/main/resources/files/lexiconBlock";
-
-    final String LEXICON_PATH = "src/main/resources/files/lexicon.txt";
-
-    final String INVERTED_INDEX_PATH = "src/main/resources/files/invertedIndex.txt";
-
-    HashMap<String, Integer> lexicon;
-
-    HashMap<String, Integer> lexiconBlock;
-
-    LinkedList<LinkedList<Integer>> invertedIndexDocIdsBlock;
-
-    LinkedList<LinkedList<Integer>> invertedIndexFrequenciesBlock;
+    final static String INVERTED_INDEX_PATH = "src/main/resources/files/invertedIndex.txt";
 
     public static void merge() {
+        //Retrieve the blocks statistics
         Statistics statistics = readStatistics();
-        System.out.println(statistics);
 
+        //Arrays of random access files, for docIds, frequencies and lexicon blocks
         RandomAccessFile[] randomAccessFileDocIds = new RandomAccessFile[statistics.numberOfBlocks];
         RandomAccessFile[] randomAccessFilesFrequencies = new RandomAccessFile[statistics.numberOfBlocks];
         RandomAccessFile[] randomAccessFilesLexicon = new RandomAccessFile[statistics.numberOfBlocks];
 
-        try {
-            for (int i = 0; i < statistics.numberOfBlocks; i++) {
-                randomAccessFileDocIds[i] = new RandomAccessFile("src/main/resources/files/invertedIndexDocIds"+i+".txt", "r");
-                randomAccessFilesFrequencies[i] = new RandomAccessFile("src/main/resources/files/invertedIndexFrequencies"+i+".txt", "r");
-                randomAccessFilesLexicon[i] = new RandomAccessFile("src/main/resources/files/lexiconBlock"+i+".txt", "r");
-            }
+        //Array of the current offset reached in each lexicon block
+        int[] offsets = new int[statistics.numberOfBlocks];
 
+        //Set each offset equal to 0, the starting offset of each lexicon block
+        for(int i = 0; i < statistics.numberOfBlocks; i++) {
+            offsets[i] = 0;
+        }
+
+        //Array of boolean, each i-th entry is true, if the i-th block has reached the end of the lexicon block file
+        boolean[] endOfBlock = new boolean[statistics.numberOfBlocks];
+
+        //Set each boolean equal to false, at the beginning no block has reached the end
+        for (int i = 0; i < statistics.numberOfBlocks; i++) {
+            endOfBlock[i] = false;
+        }
+
+        //String to keep the min term among all the current terms in each lexicon block, it is used to determine the
+        // term of which the posting lists must be merged
+        String minTerm = null;
+
+        //Used to store the information of a term entry from the lexicon block file
+        TermInfo curTerm;
+
+        //Contains the list of all the blocks containing the current min term
+        LinkedList<Integer> blocksWithMinTerm = new LinkedList<>();
+
+        try {
+            //Create a stream for each random access files of each block, the stream is opened ad read only
+            for (int i = 0; i < statistics.numberOfBlocks; i++) {
+                randomAccessFileDocIds[i] = new RandomAccessFile(INVERTED_INDEX_DOC_IDS_BLOCK_PATH+(i+1)+".txt", "r");
+                randomAccessFilesFrequencies[i] = new RandomAccessFile(INVERTED_INDEX_FREQUENCIES_BLOCK_PATH+(i+1)+".txt", "r");
+                randomAccessFilesLexicon[i] = new RandomAccessFile(LEXICON_BLOCK_PATH+(i+1)+".txt", "r");
+            }
         } catch (FileNotFoundException e) {
+            System.err.println("[MERGER] File not found: " + e.getMessage());
             throw new RuntimeException(e);
         }
 
-        mergeBlocks(randomAccessFileDocIds, randomAccessFilesFrequencies, randomAccessFilesLexicon);
+        //Iterate over all the lexicon blocks, until the end of the lexicon block file is reached for each block
+        while(!endOfAllFiles(endOfBlock, statistics.numberOfBlocks)) {
 
-    }
+            System.out.println("[MERGER] Search the current min term in the lexicon block files");
 
-    private static void mergeBlocks(RandomAccessFile[] randomAccessFileDocIds, RandomAccessFile[] randomAccessFilesFrequencies, RandomAccessFile[] randomAccessFilesLexicon) {
+            //For each block read the next term without moving the pointer of the blocks
+            for(int i = 0; i < statistics.numberOfBlocks; i++) {
 
+                //Avoid to read from the block if the end of the block is reached
+                if(endOfBlock[i]) {
+                    continue;
+                }
+
+                //Read the current term in the lexicon block
+                curTerm = readNextTermInfo(randomAccessFilesLexicon[i],offsets[i],true);
+
+                //Check if the end of the block is reached
+                if(curTerm == null) {
+
+                    //Set the end of the block i to true
+                    endOfBlock[i] = true;
+                    continue;
+                }
+
+                //If the current term is the lexicographically smaller than the min term, then update the min term.
+                if(minTerm == null || curTerm.getTerm().compareTo(minTerm) < 0) {
+
+                    //If we've found another min term, then update the min term.
+                    minTerm = curTerm.getTerm();
+
+                    //Clear the array of blocks with the min term.
+                    blocksWithMinTerm.clear();
+
+                    //Add the current block to the list of blocks with the min term.
+                    blocksWithMinTerm.add(i);
+
+                    //Else if the current term is equal to the min term, then add the current block to the list of blocks with the min term.
+                } else if (curTerm.getTerm().compareTo(minTerm) == 0) {
+
+                    //Add the current block to the list of blocks with the min term.
+                    blocksWithMinTerm.add(i);
+                }
+            }//At this point we have the current min term.
+
+            //Check if we've reached the and of the merge.
+            if(endOfAllFiles(endOfBlock, statistics.numberOfBlocks)) {
+                System.out.println("END OF ALL FILES");
+                break;
+            }
+
+            System.out.println("----------- TERM: " + minTerm + " -----------");
+            System.out.println(blocksWithMinTerm);
+
+            //Term info to retrieve the information about the posting lists of the current min term in the current block
+            TermInfo currentTermInfo;
+
+            //Array to store the docIds and frequencies of the posting list of the current min term in the current block
+            ArrayList<Integer> docIds = new ArrayList<>();
+            ArrayList<Integer> frequencies = new ArrayList<>();
+
+            //Merge the posting lists of the current min term in the blocks containing the term
+            for (Integer integer : blocksWithMinTerm) {
+                System.out.println("Block " + integer + ":");
+
+                //Read the lexicon entry from the current block and move the pointer of the file to the next term
+                currentTermInfo = readNextTermInfo(randomAccessFilesLexicon[integer], offsets[integer], false);
+
+                //Check if the end of the block is reached or a problem during the reading occurred
+                if(currentTermInfo == null) {
+                    continue;
+                }
+
+                //Increment the offset of the current block to the starting offset of the next term
+                offsets[integer] += 60;
+
+                //For debug, to be deleted
+                System.out.println("DOC-ID-"+integer+": " + readPostingListDocIds(randomAccessFileDocIds[integer], currentTermInfo.getOffsetDocId(), currentTermInfo.getPostingListLength()));
+                System.out.println("FREQ-"+integer+": " + readPostingListFrequencies(randomAccessFilesFrequencies[integer], currentTermInfo.getOffsetFrequency(), currentTermInfo.getPostingListLength()));
+
+                //Append the current term docIds to the docIds accumulator
+                docIds.addAll(readPostingListDocIds(randomAccessFileDocIds[integer], currentTermInfo.getOffsetDocId(), currentTermInfo.getPostingListLength()));
+
+                //Append the current term frequencies to the frequencies accumulator
+                frequencies.addAll(readPostingListFrequencies(randomAccessFilesFrequencies[integer], currentTermInfo.getOffsetFrequency(), currentTermInfo.getPostingListLength()));
+            }
+
+            // TODO: 25/03/2023 Instead of printing, write to a file in a compressed form.
+            System.out.println("DocIds-merged:" + docIds);
+            System.out.println("Frequencies-merged" + frequencies);
+
+            // TODO: 25/03/2023 Implement the compression algorithm
+            //System.out.println(Arrays.toString(offsets));
+
+            System.out.println("----------------------");
+
+            //Clear the accumulators for the next iteration
+            minTerm = null; //Otherwise it will be always the first min term found at the beginning of the merge
+            blocksWithMinTerm.clear(); //Clear the list of blocks with the min term
+        }
+
+        // TODO: 25/03/2023 Close the files.
+
+        System.out.println("END OF MERGE");
     }
 
 
@@ -78,8 +192,11 @@ public class IndexMerger {
         TermInfo termInfo;
 
         try {
+            //Set the file pointer to the start of the lexicon entry
+            randomAccessFileLexicon.seek(offset);
+
             //Read the first 48 containing the term
-            randomAccessFileLexicon.readFully(termBytes, offset, 48);
+            randomAccessFileLexicon.readFully(termBytes, 0, 48);
 
             //Convert the bytes to a string and trim it
             term = new String(termBytes, Charset.defaultCharset()).trim();
@@ -94,7 +211,7 @@ public class IndexMerger {
             return termInfo;
 
         } catch (IOException e) {
-            System.err.println("[ReadNextTermInfo] Error reading the next term from the lexicon block file");
+            System.err.println("[ReadNextTermInfo] EOF reached while reading the next lexicon entry");
             return null;
         }
     }
@@ -198,5 +315,9 @@ public class IndexMerger {
                 return false;
         }
         return true;
+    }
+
+    public static void main(String[] args){
+        merge();
     }
 }
