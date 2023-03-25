@@ -285,7 +285,7 @@ public class InvertedIndexBuilder {
     public HashMap<String, TermInfo> getLexicon() {
         return lexicon;
     }
-    
+
     public HashMap<String, ArrayList<Posting>> getInvertedIndex() {
         return invertedIndex;
     }
