@@ -1,4 +1,4 @@
-package it.unipi.mircv;
+package it.unipi.mircv.beans;
 
 import it.unipi.mircv.utils.Utils;
 
@@ -45,7 +45,7 @@ public class ParsedDocument {
     }
 
 
-    public void writeToDisk(String outputPath, RandomAccessFile randomAccessFile){
+    public void writeToDisk(RandomAccessFile randomAccessFile){
 
         //Fill with whitespaces to keep the length standard
         String tmp = Utils.leftpad(docNo, 48);
@@ -67,4 +67,13 @@ public class ParsedDocument {
         //System.out.println("[DEBUG: PARSING DOCUMENT] " + (System.nanoTime() - begin)/100000 + "ns");
 
     }
+
+    public int getDocId() {
+        return docId;
+    }
+
+    public String[] getTerms() {
+        return terms;
+    }
+
 }

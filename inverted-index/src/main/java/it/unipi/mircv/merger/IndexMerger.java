@@ -1,4 +1,7 @@
-package it.unipi.mircv;
+package it.unipi.mircv.merger;
+
+import it.unipi.mircv.beans.Statistics;
+import it.unipi.mircv.beans.TermInfo;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -22,24 +25,26 @@ public class IndexMerger {
         //Retrieve the blocks statistics
         Statistics statistics = readStatistics();
 
+        int NUMBER_OF_BLOCKS = statistics.getNumberOfBlocks();
+
         //Arrays of random access files, for docIds, frequencies and lexicon blocks
-        RandomAccessFile[] randomAccessFileDocIds = new RandomAccessFile[statistics.numberOfBlocks];
-        RandomAccessFile[] randomAccessFilesFrequencies = new RandomAccessFile[statistics.numberOfBlocks];
-        RandomAccessFile[] randomAccessFilesLexicon = new RandomAccessFile[statistics.numberOfBlocks];
+        RandomAccessFile[] randomAccessFileDocIds = new RandomAccessFile[NUMBER_OF_BLOCKS];
+        RandomAccessFile[] randomAccessFilesFrequencies = new RandomAccessFile[NUMBER_OF_BLOCKS];
+        RandomAccessFile[] randomAccessFilesLexicon = new RandomAccessFile[NUMBER_OF_BLOCKS];
 
         //Array of the current offset reached in each lexicon block
-        int[] offsets = new int[statistics.numberOfBlocks];
+        int[] offsets = new int[NUMBER_OF_BLOCKS];
 
         //Set each offset equal to 0, the starting offset of each lexicon block
-        for(int i = 0; i < statistics.numberOfBlocks; i++) {
+        for(int i = 0; i < NUMBER_OF_BLOCKS; i++) {
             offsets[i] = 0;
         }
 
         //Array of boolean, each i-th entry is true, if the i-th block has reached the end of the lexicon block file
-        boolean[] endOfBlock = new boolean[statistics.numberOfBlocks];
+        boolean[] endOfBlock = new boolean[NUMBER_OF_BLOCKS];
 
         //Set each boolean equal to false, at the beginning no block has reached the end
-        for (int i = 0; i < statistics.numberOfBlocks; i++) {
+        for (int i = 0; i < NUMBER_OF_BLOCKS; i++) {
             endOfBlock[i] = false;
         }
 
@@ -55,7 +60,7 @@ public class IndexMerger {
 
         try {
             //Create a stream for each random access files of each block, the stream is opened ad read only
-            for (int i = 0; i < statistics.numberOfBlocks; i++) {
+            for (int i = 0; i < NUMBER_OF_BLOCKS; i++) {
                 randomAccessFileDocIds[i] = new RandomAccessFile(INVERTED_INDEX_DOC_IDS_BLOCK_PATH+(i+1)+".txt", "r");
                 randomAccessFilesFrequencies[i] = new RandomAccessFile(INVERTED_INDEX_FREQUENCIES_BLOCK_PATH+(i+1)+".txt", "r");
                 randomAccessFilesLexicon[i] = new RandomAccessFile(LEXICON_BLOCK_PATH+(i+1)+".txt", "r");
@@ -66,12 +71,12 @@ public class IndexMerger {
         }
 
         //Iterate over all the lexicon blocks, until the end of the lexicon block file is reached for each block
-        while(!endOfAllFiles(endOfBlock, statistics.numberOfBlocks)) {
+        while(!endOfAllFiles(endOfBlock, NUMBER_OF_BLOCKS)) {
 
             System.out.println("[MERGER] Search the current min term in the lexicon block files");
 
             //For each block read the next term without moving the pointer of the blocks
-            for(int i = 0; i < statistics.numberOfBlocks; i++) {
+            for(int i = 0; i < NUMBER_OF_BLOCKS; i++) {
 
                 //Avoid to read from the block if the end of the block is reached
                 if(endOfBlock[i]) {
@@ -110,7 +115,7 @@ public class IndexMerger {
             }//At this point we have the current min term.
 
             //Check if we've reached the and of the merge.
-            if(endOfAllFiles(endOfBlock, statistics.numberOfBlocks)) {
+            if(endOfAllFiles(endOfBlock, NUMBER_OF_BLOCKS)) {
                 System.out.println("END OF ALL FILES");
                 break;
             }

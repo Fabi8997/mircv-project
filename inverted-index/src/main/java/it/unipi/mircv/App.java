@@ -1,5 +1,11 @@
 package it.unipi.mircv;
 
+import it.unipi.mircv.beans.ParsedDocument;
+import it.unipi.mircv.beans.Posting;
+import it.unipi.mircv.beans.Statistics;
+import it.unipi.mircv.beans.TermInfo;
+import it.unipi.mircv.builder.InvertedIndexBuilder;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -29,17 +35,17 @@ public class App
         Statistics statistics = readStatistics();
         System.out.println(statistics);
 
-        RandomAccessFile[] randomAccessFileDocIds = new RandomAccessFile[statistics.numberOfBlocks];
-        RandomAccessFile[] randomAccessFilesFrequencies = new RandomAccessFile[statistics.numberOfBlocks];
-        RandomAccessFile[] randomAccessFilesLexicon = new RandomAccessFile[statistics.numberOfBlocks];
-        int[] offsets = new int[statistics.numberOfBlocks];
+        RandomAccessFile[] randomAccessFileDocIds = new RandomAccessFile[statistics.getNumberOfBlocks()];
+        RandomAccessFile[] randomAccessFilesFrequencies = new RandomAccessFile[statistics.getNumberOfBlocks()];
+        RandomAccessFile[] randomAccessFilesLexicon = new RandomAccessFile[statistics.getNumberOfBlocks()];
+        int[] offsets = new int[statistics.getNumberOfBlocks()];
 
-        for(int i = 0; i < statistics.numberOfBlocks; i++) {
+        for(int i = 0; i < statistics.getNumberOfBlocks(); i++) {
             offsets[i] = 0;
         }
 
         try {
-            for (int i = 0; i < statistics.numberOfBlocks; i++) {
+            for (int i = 0; i < statistics.getNumberOfBlocks(); i++) {
                 randomAccessFileDocIds[i] = new RandomAccessFile("src/main/resources/files/invertedIndexDocIds"+(i+1)+".txt", "r");
                 randomAccessFilesFrequencies[i] = new RandomAccessFile("src/main/resources/files/invertedIndexFrequencies"+(i+1)+".txt", "r");
                 randomAccessFilesLexicon[i] = new RandomAccessFile("src/main/resources/files/lexiconBlock"+(i+1)+".txt", "r");
@@ -52,17 +58,17 @@ public class App
         String minTerm = null;
         TermInfo curTerm;
         LinkedList<Integer> blocksWithMinTerm = new LinkedList<>();
-        boolean[] endOfBlock = new boolean[statistics.numberOfBlocks];
-        for (int i = 0; i < statistics.numberOfBlocks; i++) {
+        boolean[] endOfBlock = new boolean[statistics.getNumberOfBlocks()];
+        for (int i = 0; i < statistics.getNumberOfBlocks(); i++) {
             endOfBlock[i] = false;
         }
 
 
         // TODO: 24/03/2023 Implementation of the k-way merge algorithm
 
-        while(!endOfAllFiles(endOfBlock, statistics.numberOfBlocks)) {
+        while(!endOfAllFiles(endOfBlock, statistics.getNumberOfBlocks())) {
             System.out.println("ITERATION STARTED");
-            for(int i = 0; i < statistics.numberOfBlocks; i++) {
+            for(int i = 0; i < statistics.getNumberOfBlocks(); i++) {
 
                 //Read the current term in the lexicon block
                 curTerm = readNextTermInfo(randomAccessFilesLexicon[i],offsets[i],true);
@@ -82,7 +88,7 @@ public class App
                     blocksWithMinTerm.add(i);
                 }
             }
-            if(endOfAllFiles(endOfBlock, statistics.numberOfBlocks)) {
+            if(endOfAllFiles(endOfBlock, statistics.getNumberOfBlocks())) {
                 System.out.println("END OF ALL FILES");
                 break;
             }
@@ -199,8 +205,8 @@ public class App
 
         System.out.println("Block "+blockNumber+" written");
 
-        System.out.println("Inverted index: \n"+invertedIndexBuilder.invertedIndex);
-        System.out.println("Lexicon: \n"+invertedIndexBuilder.lexicon);
+        System.out.println("Inverted index: \n"+invertedIndexBuilder.getInvertedIndex());
+        System.out.println("Lexicon: \n"+invertedIndexBuilder.getLexicon());
 
         //Clear the inverted index and lexicon data structure and call the garbage collector
         invertedIndexBuilder.clear();
