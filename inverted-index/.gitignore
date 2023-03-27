@@ -2,3 +2,4 @@
 target/*
 inverted-index.iml
 /src/test/java/it/unipi/mircv/*
+/src/main/resources/files/*
