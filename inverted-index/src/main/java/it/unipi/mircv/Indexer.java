@@ -28,7 +28,7 @@ public class Indexer {
     static final String DOCUMENT_INDEX_PATH = "src/main/resources/files/document_index.txt";
 
     //Percentage of memory used to define a threshold
-    static final double PERCENTAGE = 0.6;
+    static final double PERCENTAGE = 0.4;
 
     /**
      * Build an inverted index for the collection in the given path; it uses the SPIMI algorithm and build different
@@ -189,6 +189,9 @@ public class Indexer {
 
                     System.out.println("[INDEXER] Statistics of the blocks written to disk");
                 }
+
+
+                System.out.println("[INDEXER] Total processing time: " + (System.nanoTime() - begin)/1000000000+ "s");
 
                 //Close the random access file of the document index
                 documentIndexFile.close();
