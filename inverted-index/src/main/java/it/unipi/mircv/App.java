@@ -27,7 +27,7 @@ public class App
     {
         //createBlocks();
 
-        //merge();
+        merge();
 
     }
 
@@ -57,35 +57,39 @@ public class App
 
 
         String minTerm = null;
-        TermInfo curTerm;
+        TermInfo[] curTerm = new TermInfo[statistics.getNumberOfBlocks()];
         LinkedList<Integer> blocksWithMinTerm = new LinkedList<>();
         boolean[] endOfBlock = new boolean[statistics.getNumberOfBlocks()];
         for (int i = 0; i < statistics.getNumberOfBlocks(); i++) {
             endOfBlock[i] = false;
         }
 
+        for (int i = 0; i < statistics.getNumberOfBlocks(); i++) {
+            curTerm[i] = readNextTermInfo(randomAccessFilesLexicon[i],offsets[i],false);
+            if(curTerm[i] == null) {
+                endOfBlock[i] = true;
+            }
+        }
 
-        // TODO: 24/03/2023 Implementation of the k-way merge algorithm
+
 
         while(!endOfAllFiles(endOfBlock, statistics.getNumberOfBlocks())) {
             System.out.println("ITERATION STARTED");
-            for(int i = 0; i < statistics.getNumberOfBlocks(); i++) {
-
+            for(int i = 0; i < curTerm.length; i++) {
                 //Read the current term in the lexicon block
-                curTerm = readNextTermInfo(randomAccessFilesLexicon[i],offsets[i],true);
 
-                if(curTerm == null) {
+                if(curTerm[i] == null) {
                     endOfBlock[i] = true;
                     continue;
                 }
 
                 //If the current term is the lexicographically smaller than the min term, then update the min term.
-                if(minTerm == null || curTerm.getTerm().compareTo(minTerm) < 0) {
-                    minTerm = curTerm.getTerm();
+                if(minTerm == null || curTerm[i].getTerm().compareTo(minTerm) < 0) {
+                    minTerm = curTerm[i].getTerm();
                     blocksWithMinTerm.clear();
                     blocksWithMinTerm.add(i);
                     //Else if the current term is equal to the min term, then add the current block to the list of blocks with the min term.
-                } else if (curTerm.getTerm().compareTo(minTerm) == 0) {
+                } else if (curTerm[i].getTerm().compareTo(minTerm) == 0) {
                     blocksWithMinTerm.add(i);
                 }
             }
@@ -102,15 +106,20 @@ public class App
             for (Integer integer : blocksWithMinTerm) {
                 System.out.println("Block " + integer + ":");
 
-                currentTermInfo = readNextTermInfo(randomAccessFilesLexicon[integer], offsets[integer], false);
-                if(currentTermInfo == null) {
+                if(curTerm[integer] == null) {
+                    continue;
+                }
+                System.out.println("DOCID-"+integer+": " + readPostingListDocIds(randomAccessFileDocIds[integer], curTerm[integer].getOffsetDocId(), curTerm[integer].getPostingListLength()));
+                docIds.addAll(readPostingListDocIds(randomAccessFileDocIds[integer], curTerm[integer].getOffsetDocId(), curTerm[integer].getPostingListLength()));
+                System.out.println("FREQ-"+integer+": " + readPostingListFrequencies(randomAccessFilesFrequencies[integer], curTerm[integer].getOffsetFrequency(), curTerm[integer].getPostingListLength()));
+                frequencies.addAll(readPostingListFrequencies(randomAccessFilesFrequencies[integer], curTerm[integer].getOffsetFrequency(), curTerm[integer].getPostingListLength()));
+
+                curTerm[integer] = readNextTermInfo(randomAccessFilesLexicon[integer], offsets[integer],false);
+                if(curTerm[integer] == null) {
+                    endOfBlock[integer] = true;
                     continue;
                 }
                 offsets[integer] += 60;
-                System.out.println("DOCID-"+integer+": " + readPostingListDocIds(randomAccessFileDocIds[integer], currentTermInfo.getOffsetDocId(), currentTermInfo.getPostingListLength()));
-                docIds.addAll(readPostingListDocIds(randomAccessFileDocIds[integer], currentTermInfo.getOffsetDocId(), currentTermInfo.getPostingListLength()));
-                System.out.println("FREQ-"+integer+": " + readPostingListFrequencies(randomAccessFilesFrequencies[integer], currentTermInfo.getOffsetFrequency(), currentTermInfo.getPostingListLength()));
-                frequencies.addAll(readPostingListFrequencies(randomAccessFilesFrequencies[integer], currentTermInfo.getOffsetFrequency(), currentTermInfo.getPostingListLength()));
             }
             // TODO: 25/03/2023 Instead of printing, write to a file.
             System.out.println("DocIds-merged:" + docIds);

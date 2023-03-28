@@ -138,7 +138,6 @@ public class Indexer {
 
                         //Check if the memory used is above the threshold defined
                         if(!isMemoryAvailable(THRESHOLD)){
-                            System.out.println("[INDEXER] Memory over the threshold");
                             System.out.println("[INDEXER] Flushing " + blockDocuments + " documents to disk...");
 
                             //Sorting the lexicon and the inverted index
