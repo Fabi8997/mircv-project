@@ -79,7 +79,7 @@ public class IndexMerger {
         //Iterate over all the lexicon blocks, until the end of the lexicon block file is reached for each block
         while(!endOfAllFiles(endOfBlock, NUMBER_OF_BLOCKS)) {
 
-            System.out.println("[MERGER] Search the current min term in the lexicon block files");
+            //System.out.println("[MERGER] Search the current min term in the lexicon block files");
 
             //For each block read the next term without moving the pointer of the blocks
             for(int i = 0; i < NUMBER_OF_BLOCKS; i++) {
@@ -115,8 +115,8 @@ public class IndexMerger {
                 break;
             }
 
-            System.out.println("----------- TERM: " + minTerm + " -----------");
-            System.out.println(blocksWithMinTerm);
+            //System.out.println("----------- TERM: " + minTerm + " -----------");
+            //System.out.println(blocksWithMinTerm);
 
             //Array to store the docIds and frequencies of the posting list of the current min term in the current block
             ArrayList<Integer> docIds = new ArrayList<>();
@@ -124,12 +124,12 @@ public class IndexMerger {
 
             //Merge the posting lists of the current min term in the blocks containing the term
             for (Integer integer : blocksWithMinTerm) {
-                System.out.println("Block " + integer + ":");
+                //System.out.println("Block " + integer + ":");
 
 
                 //For debug, to be deleted
-                System.out.println("DOC-ID-"+integer+": " + readPostingListDocIds(randomAccessFileDocIds[integer], curTerm[integer].getOffsetDocId(), curTerm[integer].getPostingListLength()));
-                System.out.println("FREQ-"+integer+": " + readPostingListFrequencies(randomAccessFilesFrequencies[integer], curTerm[integer].getOffsetFrequency(), curTerm[integer].getPostingListLength()));
+                //System.out.println("DOC-ID-"+integer+": " + readPostingListDocIds(randomAccessFileDocIds[integer], curTerm[integer].getOffsetDocId(), curTerm[integer].getPostingListLength()));
+                //System.out.println("FREQ-"+integer+": " + readPostingListFrequencies(randomAccessFilesFrequencies[integer], curTerm[integer].getOffsetFrequency(), curTerm[integer].getPostingListLength()));
 
                 //Append the current term docIds to the docIds accumulator
                 docIds.addAll(readPostingListDocIds(randomAccessFileDocIds[integer], curTerm[integer].getOffsetDocId(), curTerm[integer].getPostingListLength()));
@@ -153,13 +153,13 @@ public class IndexMerger {
             }
 
             // TODO: 25/03/2023 Instead of printing, write to a file in a compressed form.
-            System.out.println("DocIds-merged:" + docIds);
-            System.out.println("Frequencies-merged" + frequencies);
+            //System.out.println("DocIds-merged:" + docIds);
+            //System.out.println("Frequencies-merged" + frequencies);
 
             // TODO: 25/03/2023 Implement the compression algorithm
             //System.out.println(Arrays.toString(offsets));
 
-            System.out.println("----------------------");
+            //System.out.println("----------------------");
 
             //Clear the accumulators for the next iteration
             minTerm = null; //Otherwise it will be always the first min term found at the beginning of the merge

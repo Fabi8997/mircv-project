@@ -14,6 +14,8 @@ import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.lang.Integer.toBinaryString;
+
 
 /**
  * Hello world!
@@ -27,8 +29,72 @@ public class App
     {
         //createBlocks();
 
-        merge();
+        //merge();
 
+        int i = Integer.parseInt("67822");
+        String str = toBinaryString(i);
+        System.out.println(str);
+
+        ArrayList<Integer> integers = new ArrayList<>();
+        integers.add(824);
+        integers.add(5);
+        integers.add(214577);
+        integers.add(128);
+        byte[] b = variableByteEncode(integers);
+
+
+        for (byte value : b) {
+            System.out.println(String.format("%8s", Integer.toBinaryString(value & 0xFF)).replace(' ', '0'));
+        }
+    }
+
+    public static byte[] variableByteEncodeNumber(int number){
+
+        //Retrieve the number of splits required to encode the number
+        int numberOfBytes = log128(number);
+
+        //Array to hold the encoded bytes
+        byte[] bytes = new byte[numberOfBytes];
+
+        //Write the number representation in big-endian order from the MSByte to the LSByte
+        for(int i = numberOfBytes - 1; i >= 0; i--){
+
+            //Prepend of the reminder of the division by 128 (retrieve the 7 LSB)
+            byte b = (byte) (number % 128);
+            bytes[i] = b;
+
+            //Shift right the number by 7 position
+            number /= 128;
+        }
+
+        //Set the control bit of the last byte to 1, to indicate that it is the last byte
+        bytes[numberOfBytes - 1] += 128;
+
+        //Return the encoded number
+        return bytes;
+    }
+
+    public static byte[] variableByteEncode(ArrayList<Integer> numbers){
+        ArrayList<Byte> bytes = new ArrayList<>();
+
+        for (Integer number : numbers) {
+            for(byte b : variableByteEncodeNumber(number)){
+                bytes.add(b);
+            }
+        }
+        byte[] result = new byte[bytes.size()];
+        for(int i = 0; i < bytes.size(); i++){
+            result[i] = bytes.get(i);
+        }
+        return result;
+    }
+
+
+    //Return of split of 7 bits of the number representation -> floor(logb(n)) + 1, this formula gives
+    //the number of groups of b bits to represent the number n
+    //Ex log128(128) = 1 since 128 = 0 100 0000 whene the number is power of 128, we need to add another byte to s
+    public static int log128(int number){
+        return (int)(Math.floor(Math.log(number) / Math.log(128)) + 1);
     }
 
 
