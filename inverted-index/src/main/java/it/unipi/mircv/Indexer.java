@@ -2,6 +2,7 @@ package it.unipi.mircv;
 
 import it.unipi.mircv.beans.ParsedDocument;
 import it.unipi.mircv.builder.InvertedIndexBuilder;
+import it.unipi.mircv.merger.IndexMerger;
 import it.unipi.mircv.parser.Parser;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -28,7 +29,7 @@ public class Indexer {
     static final String DOCUMENT_INDEX_PATH = "src/main/resources/files/document_index.txt";
 
     //Percentage of memory used to define a threshold
-    static final double PERCENTAGE = 0.6;
+    static final double PERCENTAGE = 0.4;
 
     /**
      * Build an inverted index for the collection in the given path; it uses the SPIMI algorithm and build different
@@ -138,7 +139,6 @@ public class Indexer {
 
                         //Check if the memory used is above the threshold defined
                         if(!isMemoryAvailable(THRESHOLD)){
-                            System.out.println("[INDEXER] Memory over the threshold");
                             System.out.println("[INDEXER] Flushing " + blockDocuments + " documents to disk...");
 
                             //Sorting the lexicon and the inverted index
@@ -190,6 +190,8 @@ public class Indexer {
 
                     System.out.println("[INDEXER] Statistics of the blocks written to disk");
                 }
+
+                System.out.println("[INDEXER] Total processing time: " + (System.nanoTime() - begin)/1000000000+ "s");
 
                 //Close the random access file of the document index
                 documentIndexFile.close();
@@ -279,8 +281,9 @@ public class Indexer {
 
     public static void main(String[] args){
         //Create the inverted index
-        parseCollection(COLLECTION_PATH, Boolean.valueOf(args[1]));
+        //parseCollection(COLLECTION_PATH, Boolean.valueOf(args[1]));
 
+        IndexMerger.merge();
         // TODO: 25/03/2023 Merge the inverted index and the lexicon
     }
 }

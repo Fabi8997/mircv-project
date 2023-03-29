@@ -14,6 +14,9 @@ import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.lang.Integer.toBinaryString;
+
+
 /**
  * Hello world!
  *
@@ -28,6 +31,70 @@ public class App
 
         //merge();
 
+        int i = Integer.parseInt("67822");
+        String str = toBinaryString(i);
+        System.out.println(str);
+
+        ArrayList<Integer> integers = new ArrayList<>();
+        integers.add(824);
+        integers.add(5);
+        integers.add(214577);
+        integers.add(128);
+        byte[] b = variableByteEncode(integers);
+
+
+        for (byte value : b) {
+            System.out.println(String.format("%8s", Integer.toBinaryString(value & 0xFF)).replace(' ', '0'));
+        }
+    }
+
+    public static byte[] variableByteEncodeNumber(int number){
+
+        //Retrieve the number of splits required to encode the number
+        int numberOfBytes = log128(number);
+
+        //Array to hold the encoded bytes
+        byte[] bytes = new byte[numberOfBytes];
+
+        //Write the number representation in big-endian order from the MSByte to the LSByte
+        for(int i = numberOfBytes - 1; i >= 0; i--){
+
+            //Prepend of the reminder of the division by 128 (retrieve the 7 LSB)
+            byte b = (byte) (number % 128);
+            bytes[i] = b;
+
+            //Shift right the number by 7 position
+            number /= 128;
+        }
+
+        //Set the control bit of the last byte to 1, to indicate that it is the last byte
+        bytes[numberOfBytes - 1] += 128;
+
+        //Return the encoded number
+        return bytes;
+    }
+
+    public static byte[] variableByteEncode(ArrayList<Integer> numbers){
+        ArrayList<Byte> bytes = new ArrayList<>();
+
+        for (Integer number : numbers) {
+            for(byte b : variableByteEncodeNumber(number)){
+                bytes.add(b);
+            }
+        }
+        byte[] result = new byte[bytes.size()];
+        for(int i = 0; i < bytes.size(); i++){
+            result[i] = bytes.get(i);
+        }
+        return result;
+    }
+
+
+    //Return of split of 7 bits of the number representation -> floor(logb(n)) + 1, this formula gives
+    //the number of groups of b bits to represent the number n
+    //Ex log128(128) = 1 since 128 = 0 100 0000 whene the number is power of 128, we need to add another byte to s
+    public static int log128(int number){
+        return (int)(Math.floor(Math.log(number) / Math.log(128)) + 1);
     }
 
 
@@ -56,35 +123,39 @@ public class App
 
 
         String minTerm = null;
-        TermInfo curTerm;
+        TermInfo[] curTerm = new TermInfo[statistics.getNumberOfBlocks()];
         LinkedList<Integer> blocksWithMinTerm = new LinkedList<>();
         boolean[] endOfBlock = new boolean[statistics.getNumberOfBlocks()];
         for (int i = 0; i < statistics.getNumberOfBlocks(); i++) {
             endOfBlock[i] = false;
         }
 
+        for (int i = 0; i < statistics.getNumberOfBlocks(); i++) {
+            curTerm[i] = readNextTermInfo(randomAccessFilesLexicon[i],offsets[i],false);
+            if(curTerm[i] == null) {
+                endOfBlock[i] = true;
+            }
+        }
 
-        // TODO: 24/03/2023 Implementation of the k-way merge algorithm
+
 
         while(!endOfAllFiles(endOfBlock, statistics.getNumberOfBlocks())) {
             System.out.println("ITERATION STARTED");
-            for(int i = 0; i < statistics.getNumberOfBlocks(); i++) {
-
+            for(int i = 0; i < curTerm.length; i++) {
                 //Read the current term in the lexicon block
-                curTerm = readNextTermInfo(randomAccessFilesLexicon[i],offsets[i],true);
 
-                if(curTerm == null) {
+                if(curTerm[i] == null) {
                     endOfBlock[i] = true;
                     continue;
                 }
 
                 //If the current term is the lexicographically smaller than the min term, then update the min term.
-                if(minTerm == null || curTerm.getTerm().compareTo(minTerm) < 0) {
-                    minTerm = curTerm.getTerm();
+                if(minTerm == null || curTerm[i].getTerm().compareTo(minTerm) < 0) {
+                    minTerm = curTerm[i].getTerm();
                     blocksWithMinTerm.clear();
                     blocksWithMinTerm.add(i);
                     //Else if the current term is equal to the min term, then add the current block to the list of blocks with the min term.
-                } else if (curTerm.getTerm().compareTo(minTerm) == 0) {
+                } else if (curTerm[i].getTerm().compareTo(minTerm) == 0) {
                     blocksWithMinTerm.add(i);
                 }
             }
@@ -101,15 +172,20 @@ public class App
             for (Integer integer : blocksWithMinTerm) {
                 System.out.println("Block " + integer + ":");
 
-                currentTermInfo = readNextTermInfo(randomAccessFilesLexicon[integer], offsets[integer], false);
-                if(currentTermInfo == null) {
+                if(curTerm[integer] == null) {
+                    continue;
+                }
+                System.out.println("DOCID-"+integer+": " + readPostingListDocIds(randomAccessFileDocIds[integer], curTerm[integer].getOffsetDocId(), curTerm[integer].getPostingListLength()));
+                docIds.addAll(readPostingListDocIds(randomAccessFileDocIds[integer], curTerm[integer].getOffsetDocId(), curTerm[integer].getPostingListLength()));
+                System.out.println("FREQ-"+integer+": " + readPostingListFrequencies(randomAccessFilesFrequencies[integer], curTerm[integer].getOffsetFrequency(), curTerm[integer].getPostingListLength()));
+                frequencies.addAll(readPostingListFrequencies(randomAccessFilesFrequencies[integer], curTerm[integer].getOffsetFrequency(), curTerm[integer].getPostingListLength()));
+
+                curTerm[integer] = readNextTermInfo(randomAccessFilesLexicon[integer], offsets[integer],false);
+                if(curTerm[integer] == null) {
+                    endOfBlock[integer] = true;
                     continue;
                 }
                 offsets[integer] += 60;
-                System.out.println("DOCID-"+integer+": " + readPostingListDocIds(randomAccessFileDocIds[integer], currentTermInfo.getOffsetDocId(), currentTermInfo.getPostingListLength()));
-                docIds.addAll(readPostingListDocIds(randomAccessFileDocIds[integer], currentTermInfo.getOffsetDocId(), currentTermInfo.getPostingListLength()));
-                System.out.println("FREQ-"+integer+": " + readPostingListFrequencies(randomAccessFilesFrequencies[integer], currentTermInfo.getOffsetFrequency(), currentTermInfo.getPostingListLength()));
-                frequencies.addAll(readPostingListFrequencies(randomAccessFilesFrequencies[integer], currentTermInfo.getOffsetFrequency(), currentTermInfo.getPostingListLength()));
             }
             // TODO: 25/03/2023 Instead of printing, write to a file.
             System.out.println("DocIds-merged:" + docIds);

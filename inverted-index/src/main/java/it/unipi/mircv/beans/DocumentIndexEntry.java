@@ -1,4 +1,4 @@
-package it.unipi.mircv.utils;
+package it.unipi.mircv.beans;
 
 public class DocumentIndexEntry {
 
