@@ -27,28 +27,18 @@ public class App
 
     public static void main( String[] args )
     {
-        //createBlocks();
+        createBlocks();
 
         //merge();
-
-        int i = Integer.parseInt("67822");
-        String str = toBinaryString(i);
-        System.out.println(str);
-
-        ArrayList<Integer> integers = new ArrayList<>();
-        integers.add(824);
-        integers.add(5);
-        integers.add(214577);
-        integers.add(128);
-        byte[] b = variableByteEncode(integers);
-
-
-        for (byte value : b) {
-            System.out.println(String.format("%8s", Integer.toBinaryString(value & 0xFF)).replace(' ', '0'));
-        }
     }
 
     public static byte[] variableByteEncodeNumber(int number){
+
+        //If the number is 0, we return a zero byte directly, otherwise the algorithm doesn't work
+        //In particular the log doesn't exist at 0, log(x) exists for x > 0
+        if(number == 0){
+            return new byte[]{0};
+        }
 
         //Retrieve the number of splits required to encode the number
         int numberOfBytes = log128(number);

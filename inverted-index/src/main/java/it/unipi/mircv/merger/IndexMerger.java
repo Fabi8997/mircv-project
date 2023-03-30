@@ -10,6 +10,9 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
+import static it.unipi.mircv.compressor.Compressor.variableByteDecode;
+import static it.unipi.mircv.compressor.Compressor.variableByteEncode;
+
 
 public class IndexMerger {
 
@@ -52,9 +55,16 @@ public class IndexMerger {
         //Used to store the information of the current term entry for each lexicon block file
         TermInfo[] curTerm = new TermInfo[NUMBER_OF_BLOCKS];
 
-
         //Contains the list of all the blocks containing the current min term
         LinkedList<Integer> blocksWithMinTerm = new LinkedList<>();
+
+        //Array to store the docIds and frequencies of the posting list of the current min term in the current block
+        ArrayList<Integer> docIds = new ArrayList<>();
+        ArrayList<Integer> frequencies = new ArrayList<>();
+
+        //Arrays to store the compressed docIds and frequencies of the posting list of the current min term
+        byte[] docIdsCompressed;
+        byte[] frequenciesCompressed;
 
         try {
             //Create a stream for each random access files of each block, the stream is opened ad read only
@@ -115,12 +125,8 @@ public class IndexMerger {
                 break;
             }
 
-            //System.out.println("----------- TERM: " + minTerm + " -----------");
+            System.out.println("----------- TERM: " + minTerm + " -----------");
             //System.out.println(blocksWithMinTerm);
-
-            //Array to store the docIds and frequencies of the posting list of the current min term in the current block
-            ArrayList<Integer> docIds = new ArrayList<>();
-            ArrayList<Integer> frequencies = new ArrayList<>();
 
             //Merge the posting lists of the current min term in the blocks containing the term
             for (Integer integer : blocksWithMinTerm) {
@@ -152,21 +158,52 @@ public class IndexMerger {
 
             }
 
-            // TODO: 25/03/2023 Instead of printing, write to a file in a compressed form.
-            //System.out.println("DocIds-merged:" + docIds);
-            //System.out.println("Frequencies-merged" + frequencies);
+            //Compress the list of docIds using VBE
+            docIdsCompressed = variableByteEncode(docIds);
 
-            // TODO: 25/03/2023 Implement the compression algorithm
-            //System.out.println(Arrays.toString(offsets));
+            //Compress the list of frequencies using VBE
+            frequenciesCompressed = variableByteEncode(frequencies);
 
-            //System.out.println("----------------------");
+            //For debug, to be deleted
+            System.out.println("DocIds-merged:" + variableByteDecode(docIdsCompressed));
+            System.out.println("Frequencies-merged" + variableByteDecode(frequenciesCompressed));
+
+            // TODO: 30/03/2023 Write the compressed docIds and frequencies into a file
+            //System.out.println(Arrays.toString(offsetsDocIds));
+            //System.out.println(Arrays.toString(offsetsFrequencies));
+            //randomAccessFileDocIds.write(docIdsCompressed);
+            //randomAccessFilesFrequencies.write(frequenciesCompressed();
+
+            // TODO: 30/03/2023  Write the lexicon entry into a file, with the offsets
+            //terminfo = new TermInfo(minTerm, offsetDocId, offsetFrequency, docIdsCompressed.length(), frequenciesCompressed.length());
+            //terminfo.setTFIDF()
+            //terminfo.setBM25()
+            //terminfo.writeToFile(randomAccessFilesLexicon);
+
+            // TODO: 30/03/2023 Increase the offsets of docIds and frequencies
+            //offsetDocId += docIdsCompressed.length;
+            //offsetFrequency += frequenciesCompressed.length;
 
             //Clear the accumulators for the next iteration
+            docIds.clear();
+            frequencies.clear();
             minTerm = null; //Otherwise it will be always the first min term found at the beginning of the merge
             blocksWithMinTerm.clear(); //Clear the list of blocks with the min term
         }
 
-        // TODO: 25/03/2023 Close the files.
+        System.out.println("[MERGER] Closing the streams of the files");
+
+        try {
+            //Close the streams of the files
+            for (int i = 0; i < NUMBER_OF_BLOCKS; i++) {
+                randomAccessFileDocIds[i].close();
+                randomAccessFilesFrequencies[i].close();
+                randomAccessFilesLexicon[i].close();
+            }
+        } catch (RuntimeException | IOException e) {
+            System.err.println("[MERGER] File not found: " + e.getMessage());
+            throw new RuntimeException(e);
+        }
 
         System.out.println("END OF MERGE");
     }
@@ -305,10 +342,13 @@ public class IndexMerger {
      */
     private static boolean endOfAllFiles(boolean[] endOfBlocks, int numberOfBlocks) {
 
+        //For each block check if it has reached the end of the file
         for(int i = 0; i < numberOfBlocks; i++) {
             if(!endOfBlocks[i])
+                //At least one file has not reached the end of the file
                 return false;
         }
+        //All the files have reached the end of the file
         return true;
     }
 

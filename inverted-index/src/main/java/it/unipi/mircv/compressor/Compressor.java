@@ -14,6 +14,12 @@ public class Compressor {
      */
     public static byte[] variableByteEncodeNumber(int number){
 
+        //If the number is 0, we return directly the code in VB of 0, otherwise the algorithm doesn't work
+        //In particular the log doesn't exist at 0, log(x) exists for x > 0
+        if(number == 0){
+            return new byte[]{(byte) 0x80};//In practice this case shouldn't happen, since a frequency is always > 0
+        }
+
         //Retrieve the number of splits required to encode the number
         int numberOfBytes = splitsLog128(number);
 
@@ -71,8 +77,6 @@ public class Compressor {
     }
 
 
-    // TODO: 29/03/2023 Decode using VB
-
     /**
      * Decode the given array of bytes that contains a Variable Byte Encoding of a list of integers, returning the
      * corresponding list of integers.
@@ -84,8 +88,46 @@ public class Compressor {
         //Array to hold the decoded numbers
         ArrayList<Integer> numbers = new ArrayList<>();
 
-        // TODO: 29/03/2023 Body of decoding function
+        //Accumulator for the current decoded number
+        int number = 0;
 
+        //For each byte in the array
+        for (byte aByte : bytes) {
+
+            //We use the mask 0x80 = 1000 0000, to check if the MSB of the byte is 1
+            if ((aByte & 0x80) == 0x00) {
+                //The MSB is 0, then we're not at the end of the sequence of bytes of the code
+                number = number * 128 + aByte;
+            } else {
+                //The MSB is 1, then we're at the end
+
+                //Add to the accumulator number*128 + the integer value in aByte discarding the 1 in the MSB
+                number = number * 128 + (aByte &  0x7F);
+
+                //Add the decoded number to the list of numbers
+                numbers.add(number);
+
+                //Reset the accumulator
+                number = 0;
+            }
+        }
+
+        //Return the list of numbers
         return numbers;
+    }
+
+    public static void main(String[] args) {
+        ArrayList<Integer> integers = new ArrayList<>();
+        integers.add(824);
+        integers.add(5);
+        integers.add(8000000);
+        integers.add(0);
+        integers.add(128);
+        byte[] b = variableByteEncode(integers);
+        for (byte value : b) {
+            System.out.println(String.format("%8s", Integer.toBinaryString(value & 0xFF)).replace(' ', '0'));
+        }
+
+        System.out.println(variableByteDecode(b));
     }
 }
