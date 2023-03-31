@@ -12,7 +12,7 @@ public class Compressor {
      * @param number Number to be compressed
      * @return Array of bytes containing the code of the number
      */
-    public static byte[] variableByteEncodeNumber(int number){
+    public static byte[] variableByteEncodeNumber(long number){
 
         //If the number is 0, we return directly the code in VB of 0, otherwise the algorithm doesn't work
         //In particular the log doesn't exist at 0, log(x) exists for x > 0
@@ -50,7 +50,33 @@ public class Compressor {
      * @param numbers Numbers to be compressed.
      * @return Array of bytes containing the compressed numbers.
      */
-    public static byte[] variableByteEncode(ArrayList<Integer> numbers){
+    public static byte[] variableByteEncodeLong(ArrayList<Long> numbers){
+
+        //Array to hold the bytes of the encoded numbers
+        ArrayList<Byte> bytes = new ArrayList<>();
+
+        //For each number in the list
+        for (Long number : numbers) {
+
+            //Encode each number and add it to the end of the array
+            for(byte b : variableByteEncodeNumber(number)){
+                bytes.add(b);
+            }
+        }
+
+        //Array used to convert the arrayList into a byte array
+        byte[] result = new byte[bytes.size()];
+
+        //For each byte in the arrayList put it in the array of bytes
+        for(int i = 0; i < bytes.size(); i++){
+            result[i] = bytes.get(i);
+        }
+
+        //Return the array of bytes
+        return result;
+    }
+
+    public static byte[] variableByteEncodeInt(ArrayList<Integer> numbers){
 
         //Array to hold the bytes of the encoded numbers
         ArrayList<Byte> bytes = new ArrayList<>();
@@ -117,13 +143,13 @@ public class Compressor {
     }
 
     public static void main(String[] args) {
-        ArrayList<Integer> integers = new ArrayList<>();
-        integers.add(824);
-        integers.add(5);
-        integers.add(8000000);
-        integers.add(0);
-        integers.add(128);
-        byte[] b = variableByteEncode(integers);
+        ArrayList<Long> longs = new ArrayList<>();
+        longs.add(824L);
+        longs.add(5L);
+        longs.add(8000000L);
+        longs.add(0L);
+        longs.add(128L);
+        byte[] b = variableByteEncodeLong(longs);
         for (byte value : b) {
             System.out.println(String.format("%8s", Integer.toBinaryString(value & 0xFF)).replace(' ', '0'));
         }

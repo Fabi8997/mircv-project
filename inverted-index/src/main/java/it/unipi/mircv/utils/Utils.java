@@ -27,7 +27,7 @@ public class Utils {
      * @param number Number of which compute the splits.
      * @return Returns the number of splits.
      */
-    public static int splitsLog128(int number){
+    public static int splitsLog128(long number){
         return (int)(Math.floor(Math.log(number) / Math.log(128)) + 1);
     }
 }

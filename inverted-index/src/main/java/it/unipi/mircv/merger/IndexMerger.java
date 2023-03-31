@@ -3,6 +3,7 @@ package it.unipi.mircv.merger;
 import it.unipi.mircv.beans.Statistics;
 import it.unipi.mircv.beans.TermInfo;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -10,8 +11,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
-import static it.unipi.mircv.compressor.Compressor.variableByteDecode;
-import static it.unipi.mircv.compressor.Compressor.variableByteEncode;
+import static it.unipi.mircv.compressor.Compressor.*;
 
 
 public class IndexMerger {
@@ -19,12 +19,21 @@ public class IndexMerger {
     final static String INVERTED_INDEX_DOC_IDS_BLOCK_PATH = "src/main/resources/files/invertedIndexDocIds";
     final static String INVERTED_INDEX_FREQUENCIES_BLOCK_PATH = "src/main/resources/files/invertedIndexFrequencies";
     final static String LEXICON_BLOCK_PATH = "src/main/resources/files/lexiconBlock";
-
     final static String LEXICON_PATH = "src/main/resources/files/lexicon.txt";
+    final static String INVERTED_INDEX_DOC_IDS_PATH = "src/main/resources/files/docids.txt";
+    final static String INVERTED_INDEX_FREQUENCIES_PATH = "src/main/resources/files/frequencies.txt";
 
-    final static String INVERTED_INDEX_PATH = "src/main/resources/files/invertedIndex.txt";
+    /**
+     * todo
+     * @param compress
+     */
+    public static void merge(boolean compress) {
 
-    public static void merge() {
+        System.out.println("[MERGER] Merging lexicon blocks and inverted index blocks...");
+
+        //Retrieve the time at the beginning of the computation
+        long begin = System.nanoTime();
+
         //Retrieve the blocks statistics
         Statistics statistics = readStatistics();
 
@@ -34,6 +43,15 @@ public class IndexMerger {
         RandomAccessFile[] randomAccessFileDocIds = new RandomAccessFile[NUMBER_OF_BLOCKS];
         RandomAccessFile[] randomAccessFilesFrequencies = new RandomAccessFile[NUMBER_OF_BLOCKS];
         RandomAccessFile[] randomAccessFilesLexicon = new RandomAccessFile[NUMBER_OF_BLOCKS];
+
+        //Files for the final result
+        RandomAccessFile lexiconFile;
+        RandomAccessFile docIdsFile;
+        RandomAccessFile frequenciesFile;
+
+        //Accumulators to hold the current offset, starting from which the next list of postings will be written
+        long docIdsOffset = 0;
+        long frequenciesOffset = 0;
 
         //Array of the current offset reached in each lexicon block
         int[] offsets = new int[NUMBER_OF_BLOCKS];
@@ -52,6 +70,9 @@ public class IndexMerger {
         // term of which the posting lists must be merged
         String minTerm = null;
 
+        //TermInfo to keep the term's information to be written in the lexicon file
+        TermInfo lexiconEntry;
+
         //Used to store the information of the current term entry for each lexicon block file
         TermInfo[] curTerm = new TermInfo[NUMBER_OF_BLOCKS];
 
@@ -59,12 +80,13 @@ public class IndexMerger {
         LinkedList<Integer> blocksWithMinTerm = new LinkedList<>();
 
         //Array to store the docIds and frequencies of the posting list of the current min term in the current block
-        ArrayList<Integer> docIds = new ArrayList<>();
+        ArrayList<Long> docIds = new ArrayList<>();
         ArrayList<Integer> frequencies = new ArrayList<>();
 
         //Arrays to store the compressed docIds and frequencies of the posting list of the current min term
         byte[] docIdsCompressed;
         byte[] frequenciesCompressed;
+
 
         try {
             //Create a stream for each random access files of each block, the stream is opened ad read only
@@ -73,6 +95,12 @@ public class IndexMerger {
                 randomAccessFilesFrequencies[i] = new RandomAccessFile(INVERTED_INDEX_FREQUENCIES_BLOCK_PATH+(i+1)+".txt", "r");
                 randomAccessFilesLexicon[i] = new RandomAccessFile(LEXICON_BLOCK_PATH+(i+1)+".txt", "r");
             }
+
+            //Create a stream for the lexicon file, the docids file and the frequencies file, the stream is opened as write only
+            lexiconFile = new RandomAccessFile(LEXICON_PATH, "rw");
+            docIdsFile = new RandomAccessFile(INVERTED_INDEX_DOC_IDS_PATH, "rw");
+            frequenciesFile = new RandomAccessFile(INVERTED_INDEX_FREQUENCIES_PATH, "rw");
+
         } catch (FileNotFoundException e) {
             System.err.println("[MERGER] File not found: " + e.getMessage());
             throw new RuntimeException(e);
@@ -81,9 +109,13 @@ public class IndexMerger {
         //Read the first term of each lexicon block
         for (int i = 0; i < curTerm.length; i++) {
             curTerm[i] = readNextTermInfo(randomAccessFilesLexicon[i],offsets[i]);
+
             if(curTerm[i] == null) {
                 endOfBlock[i] = true;
             }
+
+            //Update the offset to the offset of the next file to be read
+            offsets[i] += 68;
         }
 
         //Iterate over all the lexicon blocks, until the end of the lexicon block file is reached for each block
@@ -125,17 +157,11 @@ public class IndexMerger {
                 break;
             }
 
-            System.out.println("----------- TERM: " + minTerm + " -----------");
+            //System.out.println("----------- TERM: " + minTerm + " -----------");
             //System.out.println(blocksWithMinTerm);
 
             //Merge the posting lists of the current min term in the blocks containing the term
             for (Integer integer : blocksWithMinTerm) {
-                //System.out.println("Block " + integer + ":");
-
-
-                //For debug, to be deleted
-                //System.out.println("DOC-ID-"+integer+": " + readPostingListDocIds(randomAccessFileDocIds[integer], curTerm[integer].getOffsetDocId(), curTerm[integer].getPostingListLength()));
-                //System.out.println("FREQ-"+integer+": " + readPostingListFrequencies(randomAccessFilesFrequencies[integer], curTerm[integer].getOffsetFrequency(), curTerm[integer].getPostingListLength()));
 
                 //Append the current term docIds to the docIds accumulator
                 docIds.addAll(readPostingListDocIds(randomAccessFileDocIds[integer], curTerm[integer].getOffsetDocId(), curTerm[integer].getPostingListLength()));
@@ -154,35 +180,80 @@ public class IndexMerger {
                 }
 
                 //Increment the offset of the current block to the starting offset of the next term
-                offsets[integer] += 60;
+                offsets[integer] += 68;
 
             }
 
-            //Compress the list of docIds using VBE
-            docIdsCompressed = variableByteEncode(docIds);
+            if(compress){
+                //Compress the list of docIds using VBE
+                docIdsCompressed = variableByteEncodeLong(docIds);
 
-            //Compress the list of frequencies using VBE
-            frequenciesCompressed = variableByteEncode(frequencies);
+                //Compress the list of frequencies using VBE
+                frequenciesCompressed = variableByteEncodeInt(frequencies);
 
-            //For debug, to be deleted
-            System.out.println("DocIds-merged:" + variableByteDecode(docIdsCompressed));
-            System.out.println("Frequencies-merged" + variableByteDecode(frequenciesCompressed));
+                //Write the docIds and frequencies of the current term in the respective files
+                try {
+                    docIdsFile.write(docIdsCompressed);
+                    frequenciesFile.write(frequenciesCompressed);
+                } catch (IOException e) {
+                    System.err.println("[MERGER] File not found: " + e.getMessage());
+                    throw new RuntimeException(e);
+                }
 
-            // TODO: 30/03/2023 Write the compressed docIds and frequencies into a file
-            //System.out.println(Arrays.toString(offsetsDocIds));
-            //System.out.println(Arrays.toString(offsetsFrequencies));
-            //randomAccessFileDocIds.write(docIdsCompressed);
-            //randomAccessFilesFrequencies.write(frequenciesCompressed();
+                lexiconEntry = new TermInfo(
+                        minTerm,                     //Term
+                        docIdsOffset,                //offset in the docids file in which the docids list starts
+                        frequenciesOffset,           //offset in the frequencies file in which the frequencies list starts
+                        docIdsCompressed.length,     //length in bytes of the compressed docids list
+                        frequenciesCompressed.length,//length in bytes of the compressed frequencies list
+                        docIds.size());              //Length of the posting list of the current term
 
-            // TODO: 30/03/2023  Write the lexicon entry into a file, with the offsets
-            //terminfo = new TermInfo(minTerm, offsetDocId, offsetFrequency, docIdsCompressed.length(), frequenciesCompressed.length());
-            //terminfo.setTFIDF()
-            //terminfo.setBM25()
-            //terminfo.writeToFile(randomAccessFilesLexicon);
+                //terminfo.setTFIDF()
+                //terminfo.setBM25()
+                lexiconEntry.writeToFile(lexiconFile, lexiconEntry);
 
-            // TODO: 30/03/2023 Increase the offsets of docIds and frequencies
-            //offsetDocId += docIdsCompressed.length;
-            //offsetFrequency += frequenciesCompressed.length;
+                docIdsOffset += docIdsCompressed.length;
+                frequenciesOffset += frequenciesCompressed.length;
+
+
+            }else {//No compression
+
+                //Write the docIds and frequencies of the current term in the respective files
+                try {
+
+                    //Write the docIds as a long to the end of the docIds file
+                    for (Long docId : docIds) {
+                        docIdsFile.writeLong(docId);
+                    }
+
+                    //Write the frequencies as an integer to the end of the frequencies file
+                    for (Integer frequency : frequencies) {
+                        frequenciesFile.writeInt(frequency);
+                    }
+                } catch (IOException e) {
+                    System.err.println("[MERGER] File not found: " + e.getMessage());
+                    throw new RuntimeException(e);
+                }
+
+                //Instantiate a new TermInfo object with the current term information, here we use the information in
+                //the docids and frequencies objects
+                lexiconEntry = new TermInfo(
+                        minTerm,                     //Term
+                        docIdsOffset,                //offset in the docids file in which the docids list starts
+                        frequenciesOffset,           //offset in the frequencies file in which the frequencies list starts
+                        docIds.size(),               //length in number of long in the docids list
+                        frequencies.size(),          //length number of integers in the frequencies list
+                        docIds.size());              //Length of the posting list of the current term
+
+                //terminfo.setTFIDF()
+                //terminfo.setBM25()
+                lexiconEntry.writeToFile(lexiconFile, lexiconEntry);
+
+                docIdsOffset += 8L*docIds.size();
+                frequenciesOffset += 4L*frequencies.size();
+
+
+            }
 
             //Clear the accumulators for the next iteration
             docIds.clear();
@@ -200,12 +271,24 @@ public class IndexMerger {
                 randomAccessFilesFrequencies[i].close();
                 randomAccessFilesLexicon[i].close();
             }
+
+            lexiconFile.close();
+            docIdsFile.close();
+            frequenciesFile.close();
+
         } catch (RuntimeException | IOException e) {
             System.err.println("[MERGER] File not found: " + e.getMessage());
             throw new RuntimeException(e);
         }
 
-        System.out.println("END OF MERGE");
+        System.out.println("[MERGER] Deleting the partial blocks");
+
+        if(deleteBlocks(NUMBER_OF_BLOCKS)){
+            System.out.println("[MERGER] Blocks deleted successfully");
+        }
+
+        System.out.println("[MERGER] Total processing time: " + (System.nanoTime() - begin)/1000000000+ "s");
+        System.out.println("[MERGER] MERGING PROCESS COMPLETE");
     }
 
 
@@ -238,7 +321,7 @@ public class IndexMerger {
             term = new String(termBytes, Charset.defaultCharset()).trim();
 
             //Instantiate the TermInfo object reading the next 3 integers from the file
-            termInfo = new TermInfo(term, randomAccessFileLexicon.readInt(), randomAccessFileLexicon.readInt(), randomAccessFileLexicon.readInt());
+            termInfo = new TermInfo(term, randomAccessFileLexicon.readLong(), randomAccessFileLexicon.readLong(), randomAccessFileLexicon.readInt());
 
             return termInfo;
 
@@ -255,10 +338,10 @@ public class IndexMerger {
      * @param offset offset starting from where to read the posting list
      * @param length length of the posting list to be read
      */
-    private static ArrayList<Integer> readPostingListDocIds(RandomAccessFile randomAccessFileDocIds, int offset, int length) {
+    private static ArrayList<Long> readPostingListDocIds(RandomAccessFile randomAccessFileDocIds, long offset, int length) {
 
         //ArrayList to store the posting list's ids
-        ArrayList<Integer> list = new ArrayList<>();
+        ArrayList<Long> list = new ArrayList<>();
 
         try {
 
@@ -275,7 +358,7 @@ public class IndexMerger {
             try {
 
                 //Read the docId and add it to the list
-                list.add(randomAccessFileDocIds.readInt());
+                list.add(randomAccessFileDocIds.readLong());
 
             } catch (IOException e) {
                 System.err.println("[ReadPostingListDocIds] Exception during read");
@@ -294,7 +377,7 @@ public class IndexMerger {
      * @param offset offset starting from where to read the posting list
      * @param length length of the posting list to be read
      */
-    private static ArrayList<Integer> readPostingListFrequencies(RandomAccessFile randomAccessFileFrequencies, int offset, int length) {
+    private static ArrayList<Integer> readPostingListFrequencies(RandomAccessFile randomAccessFileFrequencies, long offset, int length) {
 
         //ArrayList to store the posting list's frequencies
         ArrayList<Integer> list = new ArrayList<>();
@@ -352,7 +435,27 @@ public class IndexMerger {
         return true;
     }
 
+    /**
+     * Delete the partial block of lexicon and inverted index
+     * @param numberOfBlocks number of partial blocks
+     * @return true if all the files are successfully deleted, false otherwise
+     */
+    private static boolean deleteBlocks(int numberOfBlocks) {
+        File file;
+        for (int i = 0; i < numberOfBlocks; i++) {
+            file = new File(INVERTED_INDEX_DOC_IDS_BLOCK_PATH+(i+1)+".txt");
+            if(!file.delete())
+                return false;
+            file = new File(INVERTED_INDEX_FREQUENCIES_BLOCK_PATH+(i+1)+".txt");
+            if(!file.delete())
+                return false;
+            file = new File(LEXICON_BLOCK_PATH+(i+1)+".txt");
+            if(!file.delete())
+                return false;
+        }
+        return true;
+    }
     public static void main(String[] args){
-        merge();
+        merge(true);
     }
 }

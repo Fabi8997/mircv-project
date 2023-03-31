@@ -9,7 +9,7 @@ import java.util.Arrays;
 
 public class ParsedDocument {
 
-    int docId;
+    long docId;
 
     int documentLength;
 
@@ -52,7 +52,7 @@ public class ParsedDocument {
 
         //long begin = System.nanoTime();
 
-        byte[] docId = ByteBuffer.allocate(4).putInt(this.docId).array();
+        byte[] docId = ByteBuffer.allocate(8).putLong(this.docId).array();
         byte[] docNo = ByteBuffer.allocate(48).put(tmp.getBytes()).array();
         byte[] docLen = ByteBuffer.allocate(4).putInt(this.documentLength).array();
 
@@ -68,7 +68,7 @@ public class ParsedDocument {
 
     }
 
-    public int getDocId() {
+    public long getDocId() {
         return docId;
     }
 

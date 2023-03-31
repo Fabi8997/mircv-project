@@ -130,3 +130,12 @@ A noi serve qualcosa per costruire i file!!!!
 
 
 Possiamo non rispecchiare quanto visto prima!
+
+
+Prossima cose da fare:
+    Dato un offset ed una lunghezza caricare i docids in un arraylist (leggere e decomprimere la sequenza di bytes)
+    Implementare la classe posting list, che dato un termInfo restituisce la posting list
+
+
+
+
