@@ -281,9 +281,9 @@ public class Indexer {
 
     public static void main(String[] args){
         //Create the inverted index
-        //parseCollection(COLLECTION_PATH, Boolean.valueOf(args[1]));
+        parseCollection(COLLECTION_PATH, Boolean.valueOf(args[1]));
 
-        IndexMerger.merge();
+        IndexMerger.merge(false);
         // TODO: 25/03/2023 Merge the inverted index and the lexicon
     }
 }

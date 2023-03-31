@@ -1,10 +1,8 @@
 package it.unipi.mircv;
 
-import it.unipi.mircv.beans.ParsedDocument;
-import it.unipi.mircv.beans.Posting;
-import it.unipi.mircv.beans.Statistics;
-import it.unipi.mircv.beans.TermInfo;
+import it.unipi.mircv.beans.*;
 import it.unipi.mircv.builder.InvertedIndexBuilder;
+import it.unipi.mircv.compressor.Compressor;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -25,11 +23,22 @@ public class App
 {
     static HashMap<String, ArrayList<Posting>> invertedIndex = new HashMap<>();
 
-    public static void main( String[] args )
-    {
+    public static void main( String[] args ) throws IOException {
         createBlocks();
 
         //merge();
+
+        Lexicon lexicon = new Lexicon();
+        lexicon.loadLexicon();
+        System.out.println(lexicon.get("to"));
+
+        RandomAccessFile raf = new RandomAccessFile("src/main/resources/files/docids.txt","r");
+        System.out.println(raf.length());
+
+        byte[] bytes = readBytes(raf,135,11);
+        System.out.println(Compressor.variableByteDecode(bytes));
+
+        /*System.out.println(readPostingListDocIds(raf,472,4));*/
     }
 
     public static byte[] variableByteEncodeNumber(int number){
@@ -82,13 +91,24 @@ public class App
 
     //Return of split of 7 bits of the number representation -> floor(logb(n)) + 1, this formula gives
     //the number of groups of b bits to represent the number n
-    //Ex log128(128) = 1 since 128 = 0 100 0000 whene the number is power of 128, we need to add another byte to s
+    //Ex log128(128) = 1 since 128 = 0 100 0000 where the number is power of 128, we need to add another byte to s
     public static int log128(int number){
         return (int)(Math.floor(Math.log(number) / Math.log(128)) + 1);
     }
 
+    public static byte[] readBytes(RandomAccessFile raf, long offset, int length){
+        byte[] result = new byte[length];
+        try {
+            raf.seek(offset);
+            raf.read(result, 0, length);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return result;
+    }
 
-    public static void merge(){
+
+    /*public static void merge(){
         Statistics statistics = readStatistics();
         System.out.println(statistics);
 
@@ -187,7 +207,7 @@ public class App
             minTerm = null;
             blocksWithMinTerm.clear();
         }
-    }
+    }*/
     private static void createBlocks(){
         InvertedIndexBuilder invertedIndexBuilder = new InvertedIndexBuilder();
 
@@ -199,28 +219,27 @@ public class App
         String str6 = "unpaired to between to permutation set";
 
         invertedIndexBuilder.insertDocument(new ParsedDocument(1,str1.toLowerCase().split(" "),"1"));
-        invertedIndexBuilder.insertDocument(new ParsedDocument(2,str2.toLowerCase().split(" "),"2"));
-        invertedIndexBuilder.insertDocument(new ParsedDocument(3,str3.toLowerCase().split(" "),"3"));
+        invertedIndexBuilder.insertDocument(new ParsedDocument(128,str2.toLowerCase().split(" "),"2"));
+        invertedIndexBuilder.insertDocument(new ParsedDocument(258,str3.toLowerCase().split(" "),"3"));
 
         invertedIndexBuilder.sortLexicon();
         invertedIndexBuilder.sortInvertedIndex();
         writeToFiles(invertedIndexBuilder, 1);
 
-        invertedIndexBuilder.insertDocument(new ParsedDocument(4,str4.toLowerCase().split(" "),"4"));
-        invertedIndexBuilder.insertDocument(new ParsedDocument(5,str5.toLowerCase().split(" "),"5"));
+        invertedIndexBuilder.insertDocument(new ParsedDocument(12000,str4.toLowerCase().split(" "),"4"));
+        invertedIndexBuilder.insertDocument(new ParsedDocument(2121990,str5.toLowerCase().split(" "),"5"));
 
         invertedIndexBuilder.sortLexicon();
         invertedIndexBuilder.sortInvertedIndex();
         writeToFiles(invertedIndexBuilder, 2);
 
-        invertedIndexBuilder.insertDocument(new ParsedDocument(6,str6.toLowerCase().split(" "),"6"));
+        invertedIndexBuilder.insertDocument(new ParsedDocument(3000000,str6.toLowerCase().split(" "),"6"));
 
         invertedIndexBuilder.sortLexicon();
         invertedIndexBuilder.sortInvertedIndex();
         writeToFiles(invertedIndexBuilder, 3);
     }
 
-    // TODO: 25/03/2023 DONE
     private static boolean endOfAllFiles(boolean[] endOfBlocks, int numberOfBlocks) {
 
         for(int i = 0; i < numberOfBlocks; i++) {
@@ -230,7 +249,6 @@ public class App
         return true;
     }
 
-    // TODO: 24/03/2023 DONE
     public static TermInfo readNextTermInfo(RandomAccessFile randomAccessFileLexicon, int offset, boolean resetOffset) {
 
         byte[] b;
@@ -254,7 +272,6 @@ public class App
         }
     }
 
-    // TODO: 24/03/2023 DONE
     private static Statistics readStatistics(){
         return new Statistics();
     }
@@ -288,7 +305,7 @@ public class App
                 AtomicInteger pos = new AtomicInteger(1);
 
                 postingList.forEach(posting -> {
-                    byte[] postingDocId = ByteBuffer.allocate(4).putInt(posting.getDoc_id()).array();
+                    byte[] postingDocId = ByteBuffer.allocate(8).putLong(posting.getDoc_id()).array();
                     byte[] postingFreq = ByteBuffer.allocate(4).putInt(posting.getFrequency()).array();
 
                     try {
@@ -327,36 +344,38 @@ public class App
         }
     }
 
-    //TODO: 24/03/2023 DONE
-    private static ArrayList<Integer> readPostingListDocIds(RandomAccessFile randomAccessFileDocIds, int offset, int length) {
+    private static ArrayList<Long> readPostingListDocIds(RandomAccessFile randomAccessFileDocIds, long offset, int length) {
 
-        byte[] b = new byte[4];
-        long rafLength = 0;
-
-        ArrayList<Integer> list = new ArrayList<>();
+        //ArrayList to store the posting list's ids
+        ArrayList<Long> list = new ArrayList<>();
 
         try {
+            //Set the file pointer to the start of the posting list
             randomAccessFileDocIds.seek(offset);
-            rafLength = randomAccessFileDocIds.length();
+
         } catch (IOException e) {
             System.err.println("[ReadPostingListDocIds] Exception during seek");
             throw new RuntimeException(e);
         }
+
+        //Read the docIds from the file
         for(int i = 0; i < length; i ++) {
             try {
-                list.add(randomAccessFileDocIds.readInt());
+
+                //Read the docId and add it to the list
+                list.add(randomAccessFileDocIds.readLong());
+
             } catch (IOException e) {
-                /*System.err.println("[ReadPostingListDocIds] Exception during read");
-                System.err.println("[ReadPostingListDocIds] randomAccessFileDocIds.length: " + rafLength);
-                System.err.println("[ReadPostingListDocIds] offset: " + offset);
-                System.err.println("[ReadPostingListDocIds] length: " + length);*/
+                System.err.println("[ReadPostingListDocIds] Exception during read");
+                System.out.println(list);
                 throw new RuntimeException(e);
             }
         }
+
+        //Return the list
         return list;
     }
 
-    //TODO: 24/03/2023 DONE
     private static ArrayList<Integer> readPostingListFrequencies(RandomAccessFile randomAccessFileFrequencies, int offset, int length) {
         byte[] b = new byte[4];
 
