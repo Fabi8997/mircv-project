@@ -1,10 +1,5 @@
 package it.unipi.mircv.beans;
 
-import it.unipi.mircv.utils.Utils;
-
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public class ParsedDocument {
@@ -44,30 +39,6 @@ public class ParsedDocument {
                 '}';
     }
 
-
-    public void writeToDisk(RandomAccessFile randomAccessFile){
-
-        //Fill with whitespaces to keep the length standard
-        String tmp = Utils.leftpad(docNo, 48);
-
-        //long begin = System.nanoTime();
-
-        byte[] docId = ByteBuffer.allocate(8).putLong(this.docId).array();
-        byte[] docNo = ByteBuffer.allocate(48).put(tmp.getBytes()).array();
-        byte[] docLen = ByteBuffer.allocate(4).putInt(this.documentLength).array();
-
-        try {
-            randomAccessFile.write(docId);
-            randomAccessFile.write(docNo);
-            randomAccessFile.write(docLen);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        //System.out.println("[DEBUG: PARSING DOCUMENT] " + (System.nanoTime() - begin)/100000 + "ns");
-
-    }
-
     public long getDocId() {
         return docId;
     }
@@ -76,4 +47,11 @@ public class ParsedDocument {
         return terms;
     }
 
+    public int getDocumentLength() {
+        return documentLength;
+    }
+
+    public String getDocNo() {
+        return docNo;
+    }
 }

@@ -2,18 +2,12 @@ package it.unipi.mircv;
 
 import it.unipi.mircv.beans.*;
 import it.unipi.mircv.builder.InvertedIndexBuilder;
-import it.unipi.mircv.compressor.Compressor;
-
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static java.lang.Integer.toBinaryString;
-
 
 /**
  * Hello world!
@@ -24,11 +18,11 @@ public class App
     static HashMap<String, ArrayList<Posting>> invertedIndex = new HashMap<>();
 
     public static void main( String[] args ) throws IOException {
-        createBlocks();
+        //createBlocks();
 
         //merge();
 
-        Lexicon lexicon = new Lexicon();
+        /*Lexicon lexicon = new Lexicon();
         lexicon.loadLexicon();
         System.out.println(lexicon.get("to"));
 
@@ -39,6 +33,11 @@ public class App
         System.out.println(Compressor.variableByteDecode(bytes));
 
         /*System.out.println(readPostingListDocIds(raf,472,4));*/
+
+        DocumentIndex documentIndex = new DocumentIndex();
+        documentIndex.loadDocumentIndex();
+        System.out.println(documentIndex.size());
+        System.out.println(documentIndex.get(1L));
     }
 
     public static byte[] variableByteEncodeNumber(int number){
