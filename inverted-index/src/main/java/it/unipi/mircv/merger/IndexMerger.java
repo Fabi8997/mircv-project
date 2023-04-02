@@ -24,8 +24,9 @@ public class IndexMerger {
     final static String INVERTED_INDEX_FREQUENCIES_PATH = "src/main/resources/files/frequencies.txt";
 
     /**
-     * todo
-     * @param compress
+     * This method merges the inverted index and the lexicon blocks into one single file.
+     * @param compress If true, the inverted index and the lexicon blocks will be compressed using VBE, otherwise
+     *                 they will be written without compression.
      */
     public static void merge(boolean compress) {
 
@@ -166,8 +167,12 @@ public class IndexMerger {
                 //Append the current term docIds to the docIds accumulator
                 docIds.addAll(readPostingListDocIds(randomAccessFileDocIds[integer], curTerm[integer].getOffsetDocId(), curTerm[integer].getPostingListLength()));
 
+                //System.out.println("Current docIds: " + docIds);
+
                 //Append the current term frequencies to the frequencies accumulator
                 frequencies.addAll(readPostingListFrequencies(randomAccessFilesFrequencies[integer], curTerm[integer].getOffsetFrequency(), curTerm[integer].getPostingListLength()));
+
+                //System.out.println("Current term frequencies: " + frequencies);
 
                 //Read the lexicon entry from the current block and move the pointer of the file to the next term
                 curTerm[integer] = readNextTermInfo(randomAccessFilesLexicon[integer], offsets[integer]);
@@ -180,7 +185,11 @@ public class IndexMerger {
                 }
 
                 //Increment the offset of the current block to the starting offset of the next term
-                offsets[integer] += 68;
+                offsets[integer] +=
+                        TermInfo.TERM_LENGTH +
+                        TermInfo.OFFSET_DOCIDS_LENGTH +
+                        TermInfo.OFFSET_FREQUENCIES_LENGTH +
+                        TermInfo.POSTING_LIST_LENGTH;
 
             }
 
@@ -302,7 +311,7 @@ public class IndexMerger {
     public static TermInfo readNextTermInfo(RandomAccessFile randomAccessFileLexicon, int offset) {
 
         //Array of bytes in which put the term
-        byte[] termBytes = new byte[48];
+        byte[] termBytes = new byte[TermInfo.TERM_LENGTH];
 
         //String containing the term
         String term;
@@ -315,7 +324,7 @@ public class IndexMerger {
             randomAccessFileLexicon.seek(offset);
 
             //Read the first 48 containing the term
-            randomAccessFileLexicon.readFully(termBytes, 0, 48);
+            randomAccessFileLexicon.readFully(termBytes, 0, TermInfo.TERM_LENGTH);
 
             //Convert the bytes to a string and trim it
             term = new String(termBytes, Charset.defaultCharset()).trim();

@@ -1,5 +1,6 @@
 package it.unipi.mircv;
 
+import it.unipi.mircv.beans.DocumentIndexEntry;
 import it.unipi.mircv.beans.ParsedDocument;
 import it.unipi.mircv.builder.InvertedIndexBuilder;
 import it.unipi.mircv.merger.IndexMerger;
@@ -126,7 +127,7 @@ public class Indexer {
                         //Increase the number of documents analyzed in the current block
                         blockDocuments++;
 
-                        //Set the current number of documents processed as the document identifier
+                        //Set the docid of the current document
                         parsedDocument.setDocId(numberOfDocuments);
 
                         //System.out.println("[INDEXER] Doc: "+parsedDocument.docId + " read with " + parsedDocument.documentLength + "terms");
@@ -135,7 +136,8 @@ public class Indexer {
                         //Insert the document index row in the document index file. It's the building of the document
                         // index. The document index will be read from file in the future, the important is to build it
                         // and store it inside a file.
-                        parsedDocument.writeToDisk(documentIndexFile);
+                        new DocumentIndexEntry(parsedDocument.getDocNo(), parsedDocument.getDocumentLength())
+                                .writeToDisk(documentIndexFile, numberOfDocuments);
 
                         //Check if the memory used is above the threshold defined
                         if(!isMemoryAvailable(THRESHOLD)){
@@ -270,7 +272,7 @@ public class Indexer {
         return Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory() < threshold;
     }
 
-    /*//For debug
+    /*For debug
     private static long getMemoryUsed(){
         Runtime rt = Runtime.getRuntime();
         long total_mem = rt.totalMemory();
@@ -283,7 +285,7 @@ public class Indexer {
         //Create the inverted index
         parseCollection(COLLECTION_PATH, Boolean.valueOf(args[1]));
 
-        IndexMerger.merge(false);
+        IndexMerger.merge(true);
         // TODO: 25/03/2023 Merge the inverted index and the lexicon
     }
 }
