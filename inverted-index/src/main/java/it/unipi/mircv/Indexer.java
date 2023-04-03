@@ -21,13 +21,20 @@ public class Indexer {
     static int blockNumber = 1;
 
     //Path of the dataset
-    static String COLLECTION_PATH = "src/main/resources/dataset/samplecompressed.tar.gz";
+    static String COLLECTION_PATH = "Dataset/samplecompressed.tar.gz";
 
     //Statistic file path
-    static final String STATISTICS_PATH = "src/main/resources/files/statistics.txt";
+    static final String STATISTICS_PATH = "Files/statistics.txt";
 
     //Document index file path
-    static final String DOCUMENT_INDEX_PATH = "src/main/resources/files/document_index.txt";
+    static final String DOCUMENT_INDEX_PATH = "Files/document_index.txt";
+
+    static final String LEXICON_BLOCK_PATH = "inverted-index/src/main/resources/tmp/lexiconBlock";
+
+    static final String DOCIDS_BLOCK_PATH = "inverted-index/src/main/resources/tmp/invertedIndexDocIds";
+
+    static final String FREQUENCIES_BLOCK_PATH = "inverted-index/src/main/resources/tmp/invertedIndexFrequencies";
+
 
     //Percentage of memory used to define a threshold
     static final double PERCENTAGE = 0.4;
@@ -49,7 +56,7 @@ public class Indexer {
         //If the stopwords removal and the stemming is requested, the stopwords are read from a file
         if(stopwordsRemovalAndStemming) {
             try {
-                stopwords = Files.readAllLines(Paths.get("src/main/resources/utility/stopwords-en.txt"));
+                stopwords = Files.readAllLines(Paths.get("inverted-index/src/main/resources/utility/stopwords-en.txt"));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -248,11 +255,11 @@ public class Indexer {
 
         //Write the inverted index's files into the block's files
         invertedIndexBuilder.writeInvertedIndexToFile(
-                "src/main/resources/files/invertedIndexDocIds"+blockNumber+".txt",
-                "src/main/resources/files/invertedIndexFrequencies"+blockNumber+".txt");
+                DOCIDS_BLOCK_PATH+blockNumber+".txt",
+                FREQUENCIES_BLOCK_PATH +blockNumber+".txt");
 
         //Write the block's lexicon into the given file
-        invertedIndexBuilder.writeLexiconToFile("src/main/resources/files/lexiconBlock"+blockNumber+".txt");
+        invertedIndexBuilder.writeLexiconToFile(LEXICON_BLOCK_PATH+blockNumber+".txt");
 
         System.out.println("Block "+blockNumber+" written");
 
@@ -283,7 +290,7 @@ public class Indexer {
 
     public static void main(String[] args){
         //Create the inverted index
-        parseCollection(COLLECTION_PATH, Boolean.valueOf(args[1]));
+        parseCollection(COLLECTION_PATH, Boolean.valueOf(args[0]));
 
         IndexMerger.merge(true);
         // TODO: 25/03/2023 Merge the inverted index and the lexicon

@@ -18,7 +18,7 @@ public class App
     static HashMap<String, ArrayList<Posting>> invertedIndex = new HashMap<>();
 
     public static void main( String[] args ) throws IOException {
-        //createBlocks();
+        createBlocks();
 
         //merge();
 
@@ -26,7 +26,7 @@ public class App
         lexicon.loadLexicon();
         System.out.println(lexicon.get("to"));
 
-        RandomAccessFile raf = new RandomAccessFile("src/main/resources/files/docids.txt","r");
+        RandomAccessFile raf = new RandomAccessFile("Files/docids.txt","r");
         System.out.println(raf.length());
 
         byte[] bytes = readBytes(raf,135,11);
@@ -34,10 +34,10 @@ public class App
 
         /*System.out.println(readPostingListDocIds(raf,472,4));*/
 
-        DocumentIndex documentIndex = new DocumentIndex();
+        /*DocumentIndex documentIndex = new DocumentIndex();
         documentIndex.loadDocumentIndex();
         System.out.println(documentIndex.size());
-        System.out.println(documentIndex.get(1L));
+        System.out.println(documentIndex.get(1L));*/
     }
 
     public static byte[] variableByteEncodeNumber(int number){
@@ -279,11 +279,11 @@ public class App
 
         //Write the inverted index's files into the block's files
         invertedIndexBuilder.writeInvertedIndexToFile(
-                "src/main/resources/files/invertedIndexDocIds"+blockNumber+".txt",
-                "src/main/resources/files/invertedIndexFrequencies"+blockNumber+".txt");
+                "src/main/resources/tmp/invertedIndexDocIds"+blockNumber+".txt",
+                "src/main/resources/tmp/invertedIndexFrequencies"+blockNumber+".txt");
 
         //Write the block's lexicon into the given file
-        invertedIndexBuilder.writeLexiconToFile("src/main/resources/files/lexiconBlock"+blockNumber+".txt");
+        invertedIndexBuilder.writeLexiconToFile("src/main/resources/tmp/lexiconBlock"+blockNumber+".txt");
 
         System.out.println("Block "+blockNumber+" written");
 
