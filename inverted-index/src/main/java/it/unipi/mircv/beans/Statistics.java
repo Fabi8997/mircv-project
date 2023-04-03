@@ -7,7 +7,7 @@ import java.io.IOException;
 
 public class Statistics {
 
-    final String PATH = "src/main/resources/files/statistics.txt";
+    final String PATH = "Files/statistics.txt";
     private int numberOfBlocks;
     private int numberOfDocuments;
 

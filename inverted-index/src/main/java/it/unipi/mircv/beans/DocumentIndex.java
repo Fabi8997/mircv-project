@@ -6,7 +6,7 @@ import java.util.HashMap;
 public class DocumentIndex extends HashMap<Long, DocumentIndexEntry> {
 
     //Path to the document index file
-    private final static String DOCUMENT_INDEX_PATH = "src/main/resources/files/document_index.txt";
+    private final static String DOCUMENT_INDEX_PATH = "Files/document_index.txt";
 
     /**
      * Construct that calls the HashMap constructor

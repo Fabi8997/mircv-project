@@ -11,7 +11,7 @@ import java.util.HashMap;
 public class Lexicon extends HashMap<String,TermInfo> {
 
     //Path of the lexicon file
-    private final static String LEXICON_PATH = "src/main/resources/files/lexicon.txt";
+    private final static String LEXICON_PATH = "Files/lexicon.txt";
 
     //Object to open the stream from the lexicon file
     private RandomAccessFile lexiconFile;

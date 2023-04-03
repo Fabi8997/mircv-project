@@ -16,12 +16,12 @@ import static it.unipi.mircv.compressor.Compressor.*;
 
 public class IndexMerger {
 
-    final static String INVERTED_INDEX_DOC_IDS_BLOCK_PATH = "src/main/resources/files/invertedIndexDocIds";
-    final static String INVERTED_INDEX_FREQUENCIES_BLOCK_PATH = "src/main/resources/files/invertedIndexFrequencies";
-    final static String LEXICON_BLOCK_PATH = "src/main/resources/files/lexiconBlock";
-    final static String LEXICON_PATH = "src/main/resources/files/lexicon.txt";
-    final static String INVERTED_INDEX_DOC_IDS_PATH = "src/main/resources/files/docids.txt";
-    final static String INVERTED_INDEX_FREQUENCIES_PATH = "src/main/resources/files/frequencies.txt";
+    final static String INVERTED_INDEX_DOC_IDS_BLOCK_PATH = "inverted-index/src/main/resources/tmp/invertedIndexDocIds";
+    final static String INVERTED_INDEX_FREQUENCIES_BLOCK_PATH = "inverted-index/src/main/resources/tmp/invertedIndexFrequencies";
+    final static String LEXICON_BLOCK_PATH = "inverted-index/src/main/resources/tmp/lexiconBlock";
+    final static String LEXICON_PATH = "Files/lexicon.txt";
+    final static String INVERTED_INDEX_DOC_IDS_PATH = "Files/docids.txt";
+    final static String INVERTED_INDEX_FREQUENCIES_PATH = "Files/frequencies.txt";
 
     /**
      * This method merges the inverted index and the lexicon blocks into one single file.
