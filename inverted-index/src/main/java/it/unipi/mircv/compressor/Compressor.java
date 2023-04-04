@@ -142,6 +142,39 @@ public class Compressor {
         return numbers;
     }
 
+    public static ArrayList<Long> variableByteDecodeLong(byte[] bytes){
+
+        //Array to hold the decoded numbers
+        ArrayList<Long> numbers = new ArrayList<>();
+
+        //Accumulator for the current decoded number
+        long number = 0;
+
+        //For each byte in the array
+        for (byte aByte : bytes) {
+
+            //We use the mask 0x80 = 1000 0000, to check if the MSB of the byte is 1
+            if ((aByte & 0x80) == 0x00) {
+                //The MSB is 0, then we're not at the end of the sequence of bytes of the code
+                number = number * 128 + aByte;
+            } else {
+                //The MSB is 1, then we're at the end
+
+                //Add to the accumulator number*128 + the integer value in aByte discarding the 1 in the MSB
+                number = number * 128 + (aByte &  0x7F);
+
+                //Add the decoded number to the list of numbers
+                numbers.add(number);
+
+                //Reset the accumulator
+                number = 0;
+            }
+        }
+
+        //Return the list of numbers
+        return numbers;
+    }
+
     public static void main(String[] args) {
         ArrayList<Long> longs = new ArrayList<>();
         longs.add(824L);

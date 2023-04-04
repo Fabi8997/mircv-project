@@ -59,7 +59,7 @@ public class InvertedIndexBuilder {
                         for(Posting p : termPostingList){
 
                             //If the doc id is present, increment the frequency and terminate the loop
-                            if(p.getDoc_id() == parsedDocument.getDocId()){
+                            if(p.getDocId() == parsedDocument.getDocId()){
 
                                 //Increment the frequency of the doc id
                                 p.incrementFrequency();
@@ -198,7 +198,7 @@ public class InvertedIndexBuilder {
 
                 postingList.forEach(posting -> {
                     //Create the buffers for each element to be written
-                    byte[] postingDocId = ByteBuffer.allocate(8).putLong(posting.getDoc_id()).array();
+                    byte[] postingDocId = ByteBuffer.allocate(8).putLong(posting.getDocId()).array();
                     byte[] postingFreq = ByteBuffer.allocate(4).putInt(posting.getFrequency()).array();
 
                     try {
