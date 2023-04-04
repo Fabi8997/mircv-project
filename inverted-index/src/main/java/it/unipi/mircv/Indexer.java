@@ -53,6 +53,7 @@ public class Indexer {
         //List of strings that will contain the stopwords for the stopwords removal procedure
         List<String> stopwords = null;
 
+        // TODO: 04/04/2023 Move this into parser
         //If the stopwords removal and the stemming is requested, the stopwords are read from a file
         if(stopwordsRemovalAndStemming) {
             try {

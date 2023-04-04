@@ -1,5 +1,6 @@
 package it.unipi.mircv.merger;
 
+import it.unipi.mircv.beans.PostingList;
 import it.unipi.mircv.beans.Statistics;
 import it.unipi.mircv.beans.TermInfo;
 
@@ -15,7 +16,6 @@ import static it.unipi.mircv.compressor.Compressor.*;
 
 
 public class IndexMerger {
-
     final static String INVERTED_INDEX_DOC_IDS_BLOCK_PATH = "inverted-index/src/main/resources/tmp/invertedIndexDocIds";
     final static String INVERTED_INDEX_FREQUENCIES_BLOCK_PATH = "inverted-index/src/main/resources/tmp/invertedIndexFrequencies";
     final static String LEXICON_BLOCK_PATH = "inverted-index/src/main/resources/tmp/lexiconBlock";
@@ -165,12 +165,12 @@ public class IndexMerger {
             for (Integer integer : blocksWithMinTerm) {
 
                 //Append the current term docIds to the docIds accumulator
-                docIds.addAll(readPostingListDocIds(randomAccessFileDocIds[integer], curTerm[integer].getOffsetDocId(), curTerm[integer].getPostingListLength()));
+                docIds.addAll(PostingList.readPostingListDocIds(randomAccessFileDocIds[integer], curTerm[integer].getOffsetDocId(), curTerm[integer].getPostingListLength()));
 
                 //System.out.println("Current docIds: " + docIds);
 
                 //Append the current term frequencies to the frequencies accumulator
-                frequencies.addAll(readPostingListFrequencies(randomAccessFilesFrequencies[integer], curTerm[integer].getOffsetFrequency(), curTerm[integer].getPostingListLength()));
+                frequencies.addAll(PostingList.readPostingListFrequencies(randomAccessFilesFrequencies[integer], curTerm[integer].getOffsetFrequency(), curTerm[integer].getPostingListLength()));
 
                 //System.out.println("Current term frequencies: " + frequencies);
 
@@ -338,84 +338,6 @@ public class IndexMerger {
             //System.err.println("[ReadNextTermInfo] EOF reached while reading the next lexicon entry");
             return null;
         }
-    }
-
-    /**
-     * Reads the posting list's ids from the given inverted index file, starting from offset it will read the number
-     * of docIds indicated by the given length parameter.
-     * @param randomAccessFileDocIds RandomAccessFile of the docIds block file
-     * @param offset offset starting from where to read the posting list
-     * @param length length of the posting list to be read
-     */
-    private static ArrayList<Long> readPostingListDocIds(RandomAccessFile randomAccessFileDocIds, long offset, int length) {
-
-        //ArrayList to store the posting list's ids
-        ArrayList<Long> list = new ArrayList<>();
-
-        try {
-
-            //Set the file pointer to the start of the posting list
-            randomAccessFileDocIds.seek(offset);
-
-        } catch (IOException e) {
-            System.err.println("[ReadPostingListDocIds] Exception during seek");
-            throw new RuntimeException(e);
-        }
-
-        //Read the docIds from the file
-        for(int i = 0; i < length; i ++) {
-            try {
-
-                //Read the docId and add it to the list
-                list.add(randomAccessFileDocIds.readLong());
-
-            } catch (IOException e) {
-                System.err.println("[ReadPostingListDocIds] Exception during read");
-                throw new RuntimeException(e);
-            }
-        }
-
-        //Return the list
-        return list;
-    }
-
-    /**
-     * Reads the posting list's frequencies from the given inverted index file, starting from offset it will read the
-     * number of frequencies indicated by the given length parameter.
-     * @param randomAccessFileFrequencies RandomAccessFile of the frequencies block file
-     * @param offset offset starting from where to read the posting list
-     * @param length length of the posting list to be read
-     */
-    private static ArrayList<Integer> readPostingListFrequencies(RandomAccessFile randomAccessFileFrequencies, long offset, int length) {
-
-        //ArrayList to store the posting list's frequencies
-        ArrayList<Integer> list = new ArrayList<>();
-
-        try {
-
-            //Set the file pointer to the start of the posting list
-            randomAccessFileFrequencies.seek(offset);
-
-        } catch (IOException e) {
-            System.err.println("[ReadPostingListFrequencies] Exception during seek");
-            throw new RuntimeException(e);
-        }
-
-        //Read the frequencies from the file
-        for(int i = 0; i < length; i ++) {
-            try {
-
-                //Read the frequency and add it to the list
-                list.add(randomAccessFileFrequencies.readInt());
-
-            } catch (IOException e) {
-                System.err.println("[ReadPostingListFrequencies] Exception during read");
-                throw new RuntimeException(e);
-            }
-        }
-
-        //Return the list
-        return list;
     }
 
 
