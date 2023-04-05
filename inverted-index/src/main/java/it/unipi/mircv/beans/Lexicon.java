@@ -27,7 +27,7 @@ public class Lexicon extends HashMap<String,TermInfo> {
      * Load the lexicon in memory.
      */
     public void loadLexicon() {
-
+        System.out.println("[LEXICON LOADER] Lexicon loading...");
         try {
             //Start the stream from the lexicon file
             lexiconFile = new RandomAccessFile(LEXICON_PATH, "r");
