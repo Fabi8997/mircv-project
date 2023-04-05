@@ -122,6 +122,7 @@ public class IndexMerger {
         //Iterate over all the lexicon blocks, until the end of the lexicon block file is reached for each block
         while(!endOfAllFiles(endOfBlock, NUMBER_OF_BLOCKS)) {
 
+            System.out.println("[INDEXER] Processing time: " + (System.nanoTime() - begin)/1000000000+ "s");
             //System.out.println("[MERGER] Search the current min term in the lexicon block files");
 
             //For each block read the next term without moving the pointer of the blocks

@@ -11,11 +11,14 @@ public class Statistics {
     private int numberOfBlocks;
     private int numberOfDocuments;
 
+    private int avdl;
+
     @Override
     public String toString() {
         return "Statistics{" +
                 "numberOfBlocks=" + numberOfBlocks +
                 ", numberOfDocuments=" + numberOfDocuments +
+                ", avdl=" + avdl +
                 '}';
     }
 
@@ -38,6 +41,9 @@ public class Statistics {
             if ((line = br.readLine()) != null) {
                 numberOfDocuments = Integer.parseInt(line);
             }
+            if ((line = br.readLine())!= null) {
+                avdl = Integer.parseInt(line);
+            }
             fr.close();
 
         } catch (IOException e) {
@@ -48,5 +54,9 @@ public class Statistics {
     public int getNumberOfBlocks() {
         return numberOfBlocks;
     }
+
+    public int getNumberOfDocuments() { return numberOfDocuments; }
+
+    public int getAvdl() { return  avdl; }
 
 }

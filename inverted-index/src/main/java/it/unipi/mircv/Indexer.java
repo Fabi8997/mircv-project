@@ -91,6 +91,9 @@ public class Indexer {
                 //Counter to keep the number of documents read in total
                 int numberOfDocuments = 0;
 
+                //variable to keep track of the average length of the document
+                float avdl = 0;
+
                 //Counter to keep the number of documents read for the current block
                 int blockDocuments = 0;
 
@@ -128,6 +131,9 @@ public class Indexer {
 
                     //If the parsing of the document was completed correctly, it'll be appended to the collection buffer
                     if (parsedDocument!= null && parsedDocument.getTerms().length != 0) {
+
+                        //uptating the average number of documents
+                        avdl = avdl*(numberOfDocuments)/(numberOfDocuments + 1) + ((float) parsedDocument.getTerms().length)/(numberOfDocuments + 1);
 
                         //Increase the number of documents analyzed in total
                         numberOfDocuments++;
@@ -190,13 +196,13 @@ public class Indexer {
                     System.out.println("[INDEXER] Block "+blockNumber+" written to disk");
 
                     //Write the blocks statistics
-                    writeStatistics(blockNumber, numberOfDocuments);
+                    writeStatistics(blockNumber, numberOfDocuments, avdl);
 
                     System.out.println("[INDEXER] Statistics of the blocks written to disk");
 
                 }else{
                     //Write the blocks statistics
-                    writeStatistics(blockNumber-1, numberOfDocuments);
+                    writeStatistics(blockNumber-1, numberOfDocuments, avdl);
 
                     System.out.println("[INDEXER] Statistics of the blocks written to disk");
                 }
@@ -218,7 +224,7 @@ public class Indexer {
      * @param numberOfBlocks Number of blocks written
      * @param numberOfDocs Number of documents parsed in total
      */
-    private static void writeStatistics(int numberOfBlocks, int numberOfDocs){
+    private static void writeStatistics(int numberOfBlocks, int numberOfDocs, float avdl){
 
         //Object used to build the lexicon line into a string
         StringBuilder stringBuilder = new StringBuilder();
@@ -232,7 +238,8 @@ public class Indexer {
             //build the string
             stringBuilder
                     .append(numberOfBlocks).append("\n")
-                    .append(numberOfDocs).append("\n");
+                    .append(numberOfDocs).append("\n")
+                    .append(Math.round(avdl)).append("\n");
 
             //Write the string in the file
             bufferedWriter.write(stringBuilder.toString());
