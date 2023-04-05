@@ -37,7 +37,7 @@ public class Indexer {
 
 
     //Percentage of memory used to define a threshold
-    static final double PERCENTAGE = 0.4;
+    static final double PERCENTAGE = 0.5;
 
     /**
      * Build an inverted index for the collection in the given path; it uses the SPIMI algorithm and build different
@@ -118,7 +118,7 @@ public class Indexer {
                 System.out.println("[INDEXER] Initial total memory allocated "+ totalMemory/(1024*1024)+"MB");
                 System.out.println("[INDEXER] Initial free memory "+ initialMemory/(1024*1024)+"MB");
                 System.out.println("[INDEXER] Initial memory used "+ beforeUsedMem/(1024*1024)+"MB");
-                System.out.println("[INDEXER] Memory threshold: " + THRESHOLD/(1024*1024)+"MB -> 40%");
+                System.out.println("[INDEXER] Memory threshold: " + THRESHOLD/(1024*1024)+"MB -> " + PERCENTAGE * 100 + "%");
                 System.out.println("[INDEXER] Starting to fetch the documents...");
 
                 //Iterate over the lines
