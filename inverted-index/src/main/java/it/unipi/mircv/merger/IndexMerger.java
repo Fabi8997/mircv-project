@@ -224,7 +224,12 @@ public class IndexMerger {
                         docIdsCompressed.length,     //length in bytes of the compressed docids list
                         frequenciesCompressed.length,//length in bytes of the compressed frequencies list
                         docIds.size());              //Length of the posting list of the current term
-
+                if(j%25000 == 0) {
+                    System.out.println("[MERGER] idf = " + idf + ". TermInfo.idf = " + lexiconEntry.getIdf() + ". Term: " + lexiconEntry.getTerm());
+                }
+                if(minTerm.equals("dog") || minTerm.equals("ball") || minTerm.equals("sport")){
+                    System.out.println("[MERGER] idf = " + idf + ". TermInfo.idf = " + lexiconEntry.getIdf() + ". Term: " + lexiconEntry.getTerm());
+                }
                 //terminfo.setTFIDF()
                 //terminfo.setBM25()
                 lexiconEntry.writeToFile(lexiconFile, lexiconEntry);
@@ -252,12 +257,14 @@ public class IndexMerger {
                     throw new RuntimeException(e);
                 }
 
+                double idf = Math.log(statistics.getNumberOfDocuments()/ (double)docIds.size())/Math.log(2);
                 //Instantiate a new TermInfo object with the current term information, here we use the information in
                 //the docids and frequencies objects
                 lexiconEntry = new TermInfo(
                         minTerm,                     //Term
                         docIdsOffset,                //offset in the docids file in which the docids list starts
                         frequenciesOffset,           //offset in the frequencies file in which the frequencies list starts
+                        idf,
                         docIds.size(),               //length in number of long in the docids list
                         frequencies.size(),          //length number of integers in the frequencies list
                         docIds.size());              //Length of the posting list of the current term
@@ -298,11 +305,11 @@ public class IndexMerger {
             throw new RuntimeException(e);
         }
 
-        System.out.println("[MERGER] Deleting the partial blocks");
+        System.out.println("[MERGER] Deleting the partial blocks !!!! REMOVE /**/ to make it work");
 
-        if(deleteBlocks(NUMBER_OF_BLOCKS)){
+        /*if(deleteBlocks(NUMBER_OF_BLOCKS)){
             System.out.println("[MERGER] Blocks deleted successfully");
-        }
+        }*/
 
         System.out.println("[MERGER] Total processing time: " + (System.nanoTime() - begin)/1000000000+ "s");
         System.out.println("[MERGER] MERGING PROCESS COMPLETE");
