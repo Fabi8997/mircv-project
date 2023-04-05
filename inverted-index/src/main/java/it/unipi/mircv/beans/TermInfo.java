@@ -11,7 +11,7 @@ public class TermInfo {
     private String term;
     private long offsetDocId;
     private long offsetFrequency;
-
+    private double idf;
     private int docIdsBytesLength;
 
     private int frequenciesBytesLength;
@@ -34,6 +34,16 @@ public class TermInfo {
     public final static int POSTING_LIST_LENGTH = 4;
 
     public final static int TERM_INFO_LENGTH = TERM_LENGTH + OFFSET_DOCIDS_LENGTH + OFFSET_FREQUENCIES_LENGTH + BYTES_DOCID_LENGTH + BYTES_FREQUENCY_LENGTH + POSTING_LIST_LENGTH ;
+
+    public TermInfo(String term, long offsetDocId, long offsetFrequency, double idf, int docIdsBytesLength, int frequenciesBytesLength, int postingListLength) {
+        this.term = term;
+        this.offsetDocId = offsetDocId;
+        this.offsetFrequency = offsetFrequency;
+        this.idf = idf;
+        this.docIdsBytesLength = docIdsBytesLength;
+        this.frequenciesBytesLength = frequenciesBytesLength;
+        this.postingListLength = postingListLength;
+    }
 
     public TermInfo(String term, long offsetDocId, long offsetFrequency, int bytesDocId, int bytesFrequency, int postingListLength) {
         this.term = term;

@@ -119,10 +119,14 @@ public class IndexMerger {
             offsets[i] += 68;
         }
 
+        long j = 1;
         //Iterate over all the lexicon blocks, until the end of the lexicon block file is reached for each block
         while(!endOfAllFiles(endOfBlock, NUMBER_OF_BLOCKS)) {
+            j++;
+            if(j%25000 == 0){
+                System.out.println("[MERGER] Processing time: " + (System.nanoTime() - begin)/1000000000+ "s. Processed " + j + " terms");
+            }
 
-            System.out.println("[INDEXER] Processing time: " + (System.nanoTime() - begin)/1000000000+ "s");
             //System.out.println("[MERGER] Search the current min term in the lexicon block files");
 
             //For each block read the next term without moving the pointer of the blocks
@@ -210,10 +214,13 @@ public class IndexMerger {
                     throw new RuntimeException(e);
                 }
 
+                double idf = Math.log(statistics.getNumberOfDocuments()/ (double)docIds.size())/Math.log(2);
+
                 lexiconEntry = new TermInfo(
                         minTerm,                     //Term
                         docIdsOffset,                //offset in the docids file in which the docids list starts
                         frequenciesOffset,           //offset in the frequencies file in which the frequencies list starts
+                        idf,                         //idf
                         docIdsCompressed.length,     //length in bytes of the compressed docids list
                         frequenciesCompressed.length,//length in bytes of the compressed frequencies list
                         docIds.size());              //Length of the posting list of the current term
@@ -272,7 +279,7 @@ public class IndexMerger {
             blocksWithMinTerm.clear(); //Clear the list of blocks with the min term
         }
 
-        System.out.println("[MERGER] Closing the streams of the files");
+        System.out.println("[MERGER] Closing the streams of the files. Analyzed " + j + " terms");
 
         try {
             //Close the streams of the files
