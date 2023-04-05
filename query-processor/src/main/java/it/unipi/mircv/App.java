@@ -24,26 +24,25 @@ public class App
         System.out.println(lexicon.get("sport"));
 
         PostingList postingList = new PostingList();
-        postingList.openList(lexicon.get("twointen"));
+        postingList.openList(lexicon.get("ball"));
 
-        System.out.println(postingList);
+        System.out.println("Ball: " + postingList);
 
         postingList = new PostingList();
         postingList.openList(lexicon.get("dog"));
 
-        System.out.println(postingList);
+        System.out.println("Dog: " + postingList);
 
         postingList = new PostingList();
         postingList.openList(lexicon.get("sport"));
 
-        System.out.println(postingList);
+        System.out.println("Sport" + postingList);
 
         // TODO: 04/04/2023 parse the query
         Scanner scanner = new Scanner(System.in);
         System.out.println("Enter a String :");
         String c = scanner.nextLine();
 
-        System.out.println(c);
         // TODO: 04/04/2023 load the postings
 
         //todo score with daat
