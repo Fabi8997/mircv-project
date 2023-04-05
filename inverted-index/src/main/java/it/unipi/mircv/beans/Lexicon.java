@@ -92,6 +92,7 @@ public class Lexicon extends HashMap<String,TermInfo> {
             termInfo = new TermInfo(term,   //Term
                     lexiconFile.readLong(),  //Offset docids file
                     lexiconFile.readLong(),  //Offset frequencies file
+                    lexiconFile.readDouble(), //idf
                     lexiconFile.readInt(),  //Length in bytes of the docids list
                     lexiconFile.readInt(),  //Length in bytes of the frequencies list
                     lexiconFile.readInt()); //Length of the term's posting list
