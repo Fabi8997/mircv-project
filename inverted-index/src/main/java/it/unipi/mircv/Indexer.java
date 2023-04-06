@@ -298,9 +298,9 @@ public class Indexer {
 
     public static void main(String[] args){
         //Create the inverted index. Creates document index file and statistics file
-        //parseCollection(COLLECTION_PATH, Boolean.valueOf(args[0]));
+        parseCollection(COLLECTION_PATH, Boolean.valueOf(args[0]));
 
-        //IndexMerger.merge(true);
+        IndexMerger.merge(true);
         // TODO: 25/03/2023 Merge the inverted index and the lexicon
     }
 }
