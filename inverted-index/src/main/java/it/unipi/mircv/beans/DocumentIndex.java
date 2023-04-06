@@ -19,7 +19,7 @@ public class DocumentIndex extends HashMap<Long, DocumentIndexEntry> {
      * Load the document index in memory.
      */
     public void loadDocumentIndex() {
-
+        System.out.println("[DOCUMENT INDEX LOADER] Document index loading");
         try (//Object to open the stream from the document index file
              RandomAccessFile documentIndexFile = new RandomAccessFile(DOCUMENT_INDEX_PATH, "r")){
             //Start the stream from the document index file
@@ -36,7 +36,7 @@ public class DocumentIndex extends HashMap<Long, DocumentIndexEntry> {
 
             String docno;
 
-            System.out.println(documentIndexFile.length());
+            //System.out.println(documentIndexFile.length());
             //While we're not at the end of the file
             while (offset < documentIndexFile.length()) {
 
