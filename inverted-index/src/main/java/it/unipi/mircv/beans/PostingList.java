@@ -5,6 +5,7 @@ import it.unipi.mircv.compressor.Compressor;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.Iterator;
 
 /**
  * This class represents a posting list, it is implemented as an arrayList of postings; it provides methods to load
@@ -18,6 +19,12 @@ public class PostingList extends ArrayList<Posting> {
     //Current frequency
     private int frequency;
 
+    //If we've reached the end of the posting list
+    private boolean noMorePostings;
+
+    //Iterator to iterate over the posting list
+    private Iterator<Posting> iterator;
+
     //Path of docids file
     private final static String DOCIDS_PATH = "Files/docids.txt";
 
@@ -30,6 +37,7 @@ public class PostingList extends ArrayList<Posting> {
      */
     public PostingList() {
         super();
+        noMorePostings = false;
     }
 
     /**
@@ -59,6 +67,8 @@ public class PostingList extends ArrayList<Posting> {
             System.err.println("[OpenList] Exception during opening posting list");
             throw new RuntimeException(e);
         }
+
+        iterator = this.iterator();
     }
 
     /**
@@ -68,7 +78,7 @@ public class PostingList extends ArrayList<Posting> {
     public Posting next(){
 
         //Get the next posting in the iteration
-        Posting result = this.iterator().next();
+        Posting result = iterator.next();
 
         //Update the current information
         this.docId = result.docId;
@@ -84,7 +94,7 @@ public class PostingList extends ArrayList<Posting> {
      * @return true if the iteration has more elements.
      */
     public boolean hasNext(){
-        return this.iterator().hasNext();
+        return iterator.hasNext();
     }
 
     /**
@@ -108,6 +118,21 @@ public class PostingList extends ArrayList<Posting> {
      */
     public int getFreq(){
         return frequency;
+    }
+
+    /**
+     * Get if the current posting list has no more postings.
+     * @return true if the current posting list has no more postings, false otherwise.
+     */
+    public boolean noMorePostings() {
+        return noMorePostings;
+    }
+
+    /**
+     * Set to true the flag to signal that no more postings are available.
+     */
+    public void setNoMorePostings() {
+        this.noMorePostings = true;
     }
 
     /**
