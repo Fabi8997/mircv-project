@@ -73,10 +73,12 @@ public class App
         PostingList[] postingArray = new PostingList[query_terms.length];
         HashMap<Long, Double> ranking_tfidf = new HashMap<>();
         HashMap<Long, Double> ranking_BM25 = new HashMap<>();
+
         TermInfo termInfo = new TermInfo();
         double tf_tfidf = 0;
         double tf_BM25 = 0;
         for(int i = 0; i < postingArray.length; i++) {
+
             postingArray[i] = new PostingList();
             termInfo = lexicon.get(query_terms[i]);
             postingArray[i].openList(termInfo);
