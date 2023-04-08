@@ -11,9 +11,6 @@ import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.List;
 
 public class Indexer {
 
@@ -37,7 +34,7 @@ public class Indexer {
 
 
     //Percentage of memory used to define a threshold
-    static final double PERCENTAGE = 0.4;
+    static final double PERCENTAGE = 0.5;
 
     /**
      * Build an inverted index for the collection in the given path; it uses the SPIMI algorithm and build different
@@ -49,19 +46,6 @@ public class Indexer {
 
         //Path of the collection to be read
         File file = new File(path);
-
-        //List of strings that will contain the stopwords for the stopwords removal procedure
-        List<String> stopwords = null;
-
-        // TODO: 04/04/2023 Move this into parser
-        //If the stopwords removal and the stemming is requested, the stopwords are read from a file
-        if(stopwordsRemovalAndStemming) {
-            try {
-                stopwords = Files.readAllLines(Paths.get("inverted-index/src/main/resources/utility/stopwords-en.txt"));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
 
         //Try to open the collection provided
         try (FileInputStream fileInputStream = new FileInputStream(file);
@@ -91,6 +75,9 @@ public class Indexer {
                 //Counter to keep the number of documents read in total
                 int numberOfDocuments = 0;
 
+                //variable to keep track of the average length of the document
+                float avdl = 0;
+
                 //Counter to keep the number of documents read for the current block
                 int blockDocuments = 0;
 
@@ -115,19 +102,20 @@ public class Indexer {
                 System.out.println("[INDEXER] Initial total memory allocated "+ totalMemory/(1024*1024)+"MB");
                 System.out.println("[INDEXER] Initial free memory "+ initialMemory/(1024*1024)+"MB");
                 System.out.println("[INDEXER] Initial memory used "+ beforeUsedMem/(1024*1024)+"MB");
-                System.out.println("[INDEXER] Memory threshold: " + THRESHOLD/(1024*1024)+"MB -> 40%");
+                System.out.println("[INDEXER] Memory threshold: " + THRESHOLD/(1024*1024)+"MB -> " + PERCENTAGE * 100 + "%");
                 System.out.println("[INDEXER] Starting to fetch the documents...");
 
                 //Iterate over the lines
                 while ((line = bufferedReader.readLine()) != null ) {
 
-                    // TODO: 26/10/2022 DEAL WITH THE WHITESPACE THAT MUST NOT BE PRESENT IN THE LEXICON!
-
                     //Process the document using the stemming and stopwords removal
-                    parsedDocument = Parser.processDocument(line, stopwordsRemovalAndStemming, stopwords);
+                    parsedDocument = Parser.processDocument(line, stopwordsRemovalAndStemming);
 
                     //If the parsing of the document was completed correctly, it'll be appended to the collection buffer
                     if (parsedDocument!= null && parsedDocument.getTerms().length != 0) {
+
+                        //updating the average number of documents
+                        avdl = avdl*(numberOfDocuments)/(numberOfDocuments + 1) + ((float) parsedDocument.getTerms().length)/(numberOfDocuments + 1);
 
                         //Increase the number of documents analyzed in total
                         numberOfDocuments++;
@@ -190,13 +178,13 @@ public class Indexer {
                     System.out.println("[INDEXER] Block "+blockNumber+" written to disk");
 
                     //Write the blocks statistics
-                    writeStatistics(blockNumber, numberOfDocuments);
+                    writeStatistics(blockNumber, numberOfDocuments, avdl);
 
                     System.out.println("[INDEXER] Statistics of the blocks written to disk");
 
                 }else{
                     //Write the blocks statistics
-                    writeStatistics(blockNumber-1, numberOfDocuments);
+                    writeStatistics(blockNumber-1, numberOfDocuments, avdl);
 
                     System.out.println("[INDEXER] Statistics of the blocks written to disk");
                 }
@@ -218,7 +206,7 @@ public class Indexer {
      * @param numberOfBlocks Number of blocks written
      * @param numberOfDocs Number of documents parsed in total
      */
-    private static void writeStatistics(int numberOfBlocks, int numberOfDocs){
+    private static void writeStatistics(int numberOfBlocks, int numberOfDocs, float avdl){
 
         //Object used to build the lexicon line into a string
         StringBuilder stringBuilder = new StringBuilder();
@@ -232,7 +220,8 @@ public class Indexer {
             //build the string
             stringBuilder
                     .append(numberOfBlocks).append("\n")
-                    .append(numberOfDocs).append("\n");
+                    .append(numberOfDocs).append("\n")
+                    .append(Math.round(avdl)).append("\n");
 
             //Write the string in the file
             bufferedWriter.write(stringBuilder.toString());
@@ -290,10 +279,9 @@ public class Indexer {
 
 
     public static void main(String[] args){
-        //Create the inverted index
+        //Create the inverted index. Creates document index file and statistics file
         parseCollection(COLLECTION_PATH, Boolean.valueOf(args[0]));
 
         IndexMerger.merge(true);
-        // TODO: 25/03/2023 Merge the inverted index and the lexicon
     }
 }

@@ -1,20 +1,28 @@
 package it.unipi.mircv.scoring;
 
-import it.unipi.mircv.beans.PostingList;
-import it.unipi.mircv.beans.Tuple;
+import it.unipi.mircv.beans.*;
 
 import java.util.ArrayList;
 import java.util.PriorityQueue;
 
 public class Score {
 
+    //Values used for the BM25 scoring
+    static final double K1 = 1.5;
+    static final double B = 0.75;
+
+    //Retrieve the statistics of the inverted index
+    static final Statistics statistics = new Statistics();
+
     /**
      * Implementation of the algorithm Document-At-a-Time, it iterates over all the posting lists accessing and scoring
      * the document with the minimum document id.
-     * @param postingLists Array of posting lists
+     * @param postingLists Array of posting lists.
+     * @param documentIndex document index containing the information of the documents.
+     * @param BM25 if it is true, then the BM25 scoring is applied, otherwise the scoring is TFIDF.
      * @return an ordered array of tuples containing the document id and the score associated with the document.
      */
-    public static ArrayList<Tuple<Long,Double>> scoreCollection(PostingList[] postingLists){
+    public static ArrayList<Tuple<Long,Double>> scoreCollection(PostingList[] postingLists, DocumentIndex documentIndex, boolean BM25){
 
         //Priority queue to store the document id and its score, based on the priority of the document
         PriorityQueue<Tuple<Long,Double>> rankedDocs = new PriorityQueue<>((o1, o2) -> o2.getSecond().compareTo(o1.getSecond()));
@@ -32,10 +40,11 @@ public class Score {
         //Tuple to store the current minimum document id and the list of posting lists containing it
         Tuple<Long,ArrayList<Integer>> minDocidTuple;
 
-        //FOR DEBUG -> this will be the double score
-        int sum = 0;
+        //Support variables to accumulate over the iteration the score values
+        double tf_tfidf;
+        double tf_BM25;
+        double score = 0;
 
-        // TODO: 05/04/2023 Access each list, compute the score and move each posting to the next position
         //Access each posting list in a Document-At-a-Time fashion until no more postings are available
         while (!allPostingsEnded(postingLists)) {
 
@@ -43,16 +52,30 @@ public class Score {
             minDocidTuple = minDocid(postingLists);
 
             //Debug
-            System.out.println("------------------");
-            System.out.println("Min docID: " + minDocidTuple.getFirst());
-            System.out.println("Blocks with minDocID: " + minDocidTuple.getSecond());
+            //System.out.println("------------------");
+            //System.out.println("Min docID: " + minDocidTuple.getFirst());
+            //System.out.println("Blocks with minDocID: " + minDocidTuple.getSecond());
 
             //For each index in the list of posting lists with min doc id
             for(Integer index : minDocidTuple.getSecond()) {
 
-                //Debug sum the frequency of the term in each document with docid equal to min doc id
-                sum += postingLists[index].getFreq();
+                //If the scoring is BM25
+                if(BM25){
 
+                    //Compute the BM25's tf for the current posting
+                    tf_BM25 = postingLists[index].getFreq()/ (K1 * ((1-B) + B * ( (double)documentIndex.get(postingLists[index].getDocId()).getDocLength() / statistics.getAvdl()) + postingLists[index].getFreq()));
+
+                    //Add the partial score to the accumulated score
+                    score += tf_BM25*postingLists[index].getTermInfo().getIdf();
+
+                }else {
+
+                    //Compute the TFIDF'S tf for the current posting
+                    tf_tfidf = 1 + Math.log(postingLists[index].getFreq()) / Math.log(2);
+
+                    //Add the partial score to the accumulated score
+                    score += tf_tfidf*postingLists[index].getTermInfo().getIdf();
+                }
 
                 //Move the cursor to the next posting, if there is one, otherwise set the flag of the posting list to
                 // true, in this way we mark the end of the posting list
@@ -63,7 +86,7 @@ public class Score {
                 }else {
 
                     //Debug
-                    System.out.println("no more postings");
+                    //System.out.println("no more postings");
 
                     //Set the noMorePostings flag of the posting list to true
                     postingLists[index].setNoMorePostings();
@@ -71,15 +94,18 @@ public class Score {
             }
 
             //Debug
-            System.out.println("Sum: " + sum);
-            System.out.println("------------------");
+            //System.out.println("------------------");
+            //System.out.println("Docid:" + minDocidTuple.getFirst());
+            //System.out.println("tfidf: " + tf_tfidf);
+            //System.out.println("BM25: " + tf_BM25);
+            //System.out.println("------------------");
 
-            // TODO: 06/04/2023 Change the sum with the score
+
             //Add the score of the current document to the priority queue
-            rankedDocs.add(new Tuple<>(minDocidTuple.getFirst(), (double) sum));
+            rankedDocs.add(new Tuple<>(minDocidTuple.getFirst(), score));
 
-            //Reset the support variables for the next iteration
-            sum = 0;
+            //Clear the support variables for the next iteration
+            score = 0;
         }
 
         //Print the time used to score the documents, so to generate an answer for the query
