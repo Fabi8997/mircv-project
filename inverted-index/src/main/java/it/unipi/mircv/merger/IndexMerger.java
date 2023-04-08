@@ -129,7 +129,7 @@ public class IndexMerger {
 
             //System.out.println("[MERGER] Search the current min term in the lexicon block files");
 
-            //For each block read the next term without moving the pointer of the blocks
+            //For each block read the next term
             for(int i = 0; i < NUMBER_OF_BLOCKS; i++) {
 
                 //Avoid to read from the block if the end of the block is reached
