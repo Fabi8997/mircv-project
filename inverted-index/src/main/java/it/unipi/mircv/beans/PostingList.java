@@ -31,7 +31,8 @@ public class PostingList extends ArrayList<Posting> {
     //Path of frequencies' file
     private final static String FREQUENCIES_PATH = "Files/frequencies.txt";
 
-
+    //TermInfo of the term, used to retrieve the idf
+    private TermInfo termInfo;
     /**
      * Constructor
      */
@@ -45,6 +46,8 @@ public class PostingList extends ArrayList<Posting> {
      * @param termInfo Lexicon entry of the term, used to retrieve the offsets and the lengths of the posting list
      */
     public void openList(TermInfo termInfo){
+
+        this.termInfo = termInfo;
 
         // TODO: 05/04/2023 Retrieve if the compression is active!
         // boolean compression;
@@ -134,6 +137,11 @@ public class PostingList extends ArrayList<Posting> {
     public void setNoMorePostings() {
         this.noMorePostings = true;
     }
+
+    public TermInfo getTermInfo() {
+        return termInfo;
+    }
+
 
     /**
      * Reads the posting list's ids from the given inverted index file, starting from offset it will read the number

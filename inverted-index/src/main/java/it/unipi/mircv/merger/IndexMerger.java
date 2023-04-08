@@ -227,9 +227,9 @@ public class IndexMerger {
                 if(j%25000 == 0) {
                     System.out.println("[MERGER] idf = " + idf + ". TermInfo.idf = " + lexiconEntry.getIdf() + ". Term: " + lexiconEntry.getTerm());
                 }
-                if(minTerm.equals("dog") || minTerm.equals("ball") || minTerm.equals("sport")){
-                    System.out.println("[MERGER] idf = " + idf + ". TermInfo.idf = " + lexiconEntry.getIdf() + ". Term: " + lexiconEntry.getTerm());
-                }
+                //if(minTerm.equals("dog") || minTerm.equals("ball") || minTerm.equals("sport")){
+                //     System.out.println("[MERGER] idf = " + idf + ". TermInfo.idf = " + lexiconEntry.getIdf() + ". Term: " + lexiconEntry.getTerm());
+                // }
                 //terminfo.setTFIDF()
                 //terminfo.setBM25()
                 lexiconEntry.writeToFile(lexiconFile, lexiconEntry);
@@ -307,9 +307,9 @@ public class IndexMerger {
 
         System.out.println("[MERGER] Deleting the partial blocks !!!! REMOVE /**/ to make it work");
 
-        /*if(deleteBlocks(NUMBER_OF_BLOCKS)){
+        if(deleteBlocks(NUMBER_OF_BLOCKS)){
             System.out.println("[MERGER] Blocks deleted successfully");
-        }*/
+        }
 
         System.out.println("[MERGER] Total processing time: " + (System.nanoTime() - begin)/1000000000+ "s");
         System.out.println("[MERGER] MERGING PROCESS COMPLETE");

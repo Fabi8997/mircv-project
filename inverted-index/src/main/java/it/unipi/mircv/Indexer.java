@@ -11,9 +11,6 @@ import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.List;
 
 public class Indexer {
 
@@ -49,19 +46,6 @@ public class Indexer {
 
         //Path of the collection to be read
         File file = new File(path);
-
-        //List of strings that will contain the stopwords for the stopwords removal procedure
-        List<String> stopwords = null;
-
-        // TODO: 04/04/2023 Move this into parser
-        //If the stopwords removal and the stemming is requested, the stopwords are read from a file
-        if(stopwordsRemovalAndStemming) {
-            try {
-                stopwords = Files.readAllLines(Paths.get("inverted-index/src/main/resources/utility/stopwords-en.txt"));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
 
         //Try to open the collection provided
         try (FileInputStream fileInputStream = new FileInputStream(file);
@@ -124,15 +108,13 @@ public class Indexer {
                 //Iterate over the lines
                 while ((line = bufferedReader.readLine()) != null ) {
 
-                    // TODO: 26/10/2022 DEAL WITH THE WHITESPACE THAT MUST NOT BE PRESENT IN THE LEXICON!
-
                     //Process the document using the stemming and stopwords removal
-                    parsedDocument = Parser.processDocument(line, stopwordsRemovalAndStemming, stopwords);
+                    parsedDocument = Parser.processDocument(line, stopwordsRemovalAndStemming);
 
                     //If the parsing of the document was completed correctly, it'll be appended to the collection buffer
                     if (parsedDocument!= null && parsedDocument.getTerms().length != 0) {
 
-                        //uptating the average number of documents
+                        //updating the average number of documents
                         avdl = avdl*(numberOfDocuments)/(numberOfDocuments + 1) + ((float) parsedDocument.getTerms().length)/(numberOfDocuments + 1);
 
                         //Increase the number of documents analyzed in total
@@ -301,6 +283,5 @@ public class Indexer {
         parseCollection(COLLECTION_PATH, Boolean.valueOf(args[0]));
 
         IndexMerger.merge(true);
-        // TODO: 25/03/2023 Merge the inverted index and the lexicon
     }
 }

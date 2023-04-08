@@ -2,6 +2,10 @@ package it.unipi.mircv.parser;
 
 import it.unipi.mircv.beans.ParsedDocument;
 import opennlp.tools.stemmer.PorterStemmer;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -10,14 +14,19 @@ import java.util.stream.Stream;
 
 public class Parser {
 
+    //List of strings containing the stopwords
+    static List<String> stopWords = loadStopWords();
+
+    //Path to the file containing the list of stopwords
+    static final String STOPWORDS_FILE = "Resources/utility/stopwords-en.txt";
+
     /**
      * Parse the document tokenizing each document in the format: doc_id text_tokenized
      * @param line String containing a document of the collection in the format: [doc_id]\t[text]\n
      * @param stopwordsRemovalAndStemming True to perform the stopwords removal and stemming, otherwise must be False
-     * @param stopwords List of strings containing the stopwords, it's Null if stopwordsRemoval is false
      * @return Document tokenized in the format: [doc_id]\t[token1 token2 ... tokenN]\n
      */
-    public static ParsedDocument processDocument(String line, boolean stopwordsRemovalAndStemming, List<String> stopwords){
+    public static ParsedDocument processDocument(String line, boolean stopwordsRemovalAndStemming){
         //Utility variables to keep the current docno and text
         String docno;
         String text;
@@ -45,12 +54,12 @@ public class Parser {
         }
 
 
-        //Remove punctuation
-        String[] splittedText = removePunctuation(text).split(" ");
+        //Remove punctuation, then split when one or more whitespace characters occur
+        String[] splittedText = removePunctuation(text).split("\\s+");
 
         if(stopwordsRemovalAndStemming) {
             //Remove stop words
-            splittedText = removeStopWords(splittedText, stopwords);
+            splittedText = removeStopWords(splittedText, stopWords);
 
             //Stemming
             splittedText = getStems(splittedText);
@@ -68,7 +77,9 @@ public class Parser {
      * @return Text without punctuation
      */
     private static String removePunctuation(String text){
-        return text.replaceAll("[^\\w\\s]", "");
+        //Replace all punctuation marks with a whitespace character, then trim the string to remove the whitespaces
+        // at the beginning or end of the string.
+        return text.replaceAll("[^\\w\\s]", " ").trim();
     }
 
     /**
@@ -105,8 +116,19 @@ public class Parser {
                 .map(porterStemmer::stem).toArray(String[]::new);
     }
 
+    private static List<String> loadStopWords(){
+        System.out.println("[PARSER] Loading stop words...");
+        //If the stopwords removal and the stemming is requested, the stopwords are read from a file
+        try {
+            return Files.readAllLines(Paths.get(STOPWORDS_FILE));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static void main(String[] args) {
         //TEST parseCollection
         //System.out.println(Parser.parseCollection("src/main/resources/dataset/sample.tsv", false));
+
     }
 }
