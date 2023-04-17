@@ -1,7 +1,9 @@
 package it.unipi.mircv;
 
+import it.unipi.mircv.beans.Configuration;
 import it.unipi.mircv.beans.DocumentIndexEntry;
 import it.unipi.mircv.beans.ParsedDocument;
+import it.unipi.mircv.beans.Statistics;
 import it.unipi.mircv.builder.InvertedIndexBuilder;
 import it.unipi.mircv.merger.IndexMerger;
 import it.unipi.mircv.parser.Parser;
@@ -20,9 +22,6 @@ public class Indexer {
     //Path of the dataset
     static String COLLECTION_PATH = "Dataset/samplecompressed.tar.gz";
 
-    //Statistic file path
-    static final String STATISTICS_PATH = "Files/statistics.txt";
-
     //Document index file path
     static final String DOCUMENT_INDEX_PATH = "Files/document_index.txt";
 
@@ -32,6 +31,10 @@ public class Indexer {
 
     static final String FREQUENCIES_BLOCK_PATH = "inverted-index/src/main/resources/tmp/invertedIndexFrequencies";
 
+    static final String ARGS_ERROR = "Select one from the following arguments:\n" +
+            "-s : stemming and stopwords removal enabled\n" +
+            "-c : compression enabled\n" +
+            "-sc : both enabled";
 
     //Percentage of memory used to define a threshold
     static final double PERCENTAGE = 0.5;
@@ -178,13 +181,13 @@ public class Indexer {
                     System.out.println("[INDEXER] Block "+blockNumber+" written to disk");
 
                     //Write the blocks statistics
-                    writeStatistics(blockNumber, numberOfDocuments, avdl);
+                    Statistics.writeStatistics(blockNumber, numberOfDocuments, avdl);
 
                     System.out.println("[INDEXER] Statistics of the blocks written to disk");
 
                 }else{
                     //Write the blocks statistics
-                    writeStatistics(blockNumber-1, numberOfDocuments, avdl);
+                    Statistics.writeStatistics(blockNumber-1, numberOfDocuments, avdl);
 
                     System.out.println("[INDEXER] Statistics of the blocks written to disk");
                 }
@@ -200,40 +203,6 @@ public class Indexer {
         }
     }
 
-    /**
-     * Write the statistics of the execution, in particular the number of blocks written and the total number of
-     * documents parsed.
-     * @param numberOfBlocks Number of blocks written
-     * @param numberOfDocs Number of documents parsed in total
-     */
-    private static void writeStatistics(int numberOfBlocks, int numberOfDocs, float avdl){
-
-        //Object used to build the lexicon line into a string
-        StringBuilder stringBuilder = new StringBuilder();
-
-        //Buffered writer used to format the output
-        BufferedWriter bufferedWriter;
-
-        try {
-            bufferedWriter = new BufferedWriter(new FileWriter(Indexer.STATISTICS_PATH,true));
-
-            //build the string
-            stringBuilder
-                    .append(numberOfBlocks).append("\n")
-                    .append(numberOfDocs).append("\n")
-                    .append(Math.round(avdl)).append("\n");
-
-            //Write the string in the file
-            bufferedWriter.write(stringBuilder.toString());
-
-            //Close the writer
-            bufferedWriter.close();
-
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-    }
 
     /**
      * Write the inverted index and the lexicon blocks, the number of the block is passed as parameter. At the end
@@ -279,9 +248,45 @@ public class Indexer {
 
 
     public static void main(String[] args){
-        //Create the inverted index. Creates document index file and statistics file
-        parseCollection(COLLECTION_PATH, Boolean.valueOf(args[0]));
 
-        IndexMerger.merge(true);
+        boolean stemmingAndStopwordsRemoval = false;
+        boolean compressed = false;
+
+        if(args.length == 1){
+            switch (args[0]) {
+                case "-s":
+                    stemmingAndStopwordsRemoval = true;
+                    break;
+                case "-c":
+                    compressed = true;
+                    break;
+                case "-sc":
+                    stemmingAndStopwordsRemoval = true;
+                    compressed = true;
+                    break;
+                default:
+                    System.err.println("Invalid command\n"+ARGS_ERROR);
+                    return;
+            }
+        }else if(args.length > 1){
+            System.err.println("Wrong number of arguments\n"+ARGS_ERROR);
+            return;
+        }
+
+        System.out.println("[INDEXER] Configuration\n" +
+                "\tStemming and stopwords removal: " + stemmingAndStopwordsRemoval+"\n" +
+                "\tCompression: " + compressed);
+
+        //Create the inverted index. Creates document index file and statistics file
+        parseCollection(COLLECTION_PATH, stemmingAndStopwordsRemoval);
+
+        // TODO: 14/04/2023 If parsing fails return with error, skip the merge and remove all the files in the folder
+
+        IndexMerger.merge(compressed);
+
+        System.out.println("[INDEXER] Saving execution configuration...");
+        Configuration.saveConfiguration(stemmingAndStopwordsRemoval, compressed);
+        System.out.println("[INDEXER] Configuration saved");
+
     }
 }

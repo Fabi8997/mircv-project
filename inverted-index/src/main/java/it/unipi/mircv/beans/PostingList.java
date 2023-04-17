@@ -49,18 +49,28 @@ public class PostingList extends ArrayList<Posting> {
 
         this.termInfo = termInfo;
 
-        // TODO: 05/04/2023 Retrieve if the compression is active!
-        // boolean compression;
+        Configuration configuration = new Configuration();
+        configuration.loadConfiguration();
 
         //Open the stream with the posting list files
         try(    RandomAccessFile randomAccessFileDocIds = new RandomAccessFile(DOCIDS_PATH, "r");
                 RandomAccessFile randomAccessFileFrequencies = new RandomAccessFile(FREQUENCIES_PATH, "r")
                 ){
 
-            // TODO: 05/04/2023 if compression, otherwise the other read
             //Retrieve the docids and the frequencies
-            ArrayList<Long> docids = readPostingListDocIdsCompressed(randomAccessFileDocIds, termInfo.getOffsetDocId(), termInfo.getDocIdsBytesLength());
-            ArrayList<Integer> frequencies = readPostingListFrequenciesCompressed(randomAccessFileFrequencies, termInfo.getOffsetFrequency(), termInfo.getFrequenciesBytesLength());
+            ArrayList<Long> docids;
+            ArrayList<Integer> frequencies;
+
+            //If the compression is enabled, then read the posting lists files with the compression
+            if(configuration.getCompressed()) {
+
+                docids = readPostingListDocIdsCompressed(randomAccessFileDocIds, termInfo.getOffsetDocId(), termInfo.getDocIdsBytesLength());
+                frequencies = readPostingListFrequenciesCompressed(randomAccessFileFrequencies, termInfo.getOffsetFrequency(), termInfo.getFrequenciesBytesLength());
+            }else {//Read without compression
+
+                docids = readPostingListDocIds(randomAccessFileDocIds,termInfo.getOffsetDocId(),termInfo.getDocIdsBytesLength());
+                frequencies = readPostingListFrequencies(randomAccessFileFrequencies, termInfo.getOffsetFrequency(), termInfo.getFrequenciesBytesLength());
+            }
 
             //Create the array list of postings
             for(int i = 0; i < termInfo.getPostingListLength(); i++){
