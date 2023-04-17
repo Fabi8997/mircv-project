@@ -22,7 +22,7 @@ public class Score {
      * @param BM25 if it is true, then the BM25 scoring is applied, otherwise the scoring is TFIDF.
      * @return an ordered array of tuples containing the document id and the score associated with the document.
      */
-    public static ArrayList<Tuple<Long,Double>> scoreCollection(PostingList[] postingLists, DocumentIndex documentIndex, boolean BM25){
+    public static ArrayList<Tuple<Long,Double>> scoreCollection(PostingList[] postingLists, DocumentIndex documentIndex, boolean BM25, boolean queryType) {
 
         //Priority queue to store the document id and its score, based on the priority of the document
         PriorityQueue<Tuple<Long,Double>> rankedDocs = new PriorityQueue<>((o1, o2) -> o2.getSecond().compareTo(o1.getSecond()));

@@ -1,13 +1,9 @@
 package it.unipi.mircv.beans;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 
 public class Statistics {
 
-    final String PATH = "Files/statistics.txt";
+    final static String PATH = "Files/statistics.txt";
     private int numberOfBlocks;
     private int numberOfDocuments;
 
@@ -48,6 +44,40 @@ public class Statistics {
 
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Write the statistics of the execution, in particular the number of blocks written and the total number of
+     * documents parsed.
+     * @param numberOfBlocks Number of blocks written
+     * @param numberOfDocs Number of documents parsed in total
+     */
+    public static void writeStatistics(int numberOfBlocks, int numberOfDocs, float avdl){
+
+        //Object used to build the lexicon line into a string
+        StringBuilder stringBuilder = new StringBuilder();
+
+        //Buffered writer used to format the output
+        BufferedWriter bufferedWriter;
+
+        try {
+            bufferedWriter = new BufferedWriter(new FileWriter(PATH,false));
+
+            //build the string
+            stringBuilder
+                    .append(numberOfBlocks).append("\n")
+                    .append(numberOfDocs).append("\n")
+                    .append(Math.round(avdl)).append("\n");
+
+            //Write the string in the file
+            bufferedWriter.write(stringBuilder.toString());
+
+            //Close the writer
+            bufferedWriter.close();
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
