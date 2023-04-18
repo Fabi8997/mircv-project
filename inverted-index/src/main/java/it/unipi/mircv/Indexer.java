@@ -280,8 +280,7 @@ public class Indexer {
         //Create the inverted index. Creates document index file and statistics file
         parseCollection(COLLECTION_PATH, stemmingAndStopwordsRemoval);
 
-        // TODO: 14/04/2023 If parsing fails return with error, skip the merge and remove all the files in the folder
-
+        //Merge the blocks to obtain the inverted index, compressed indicates if the compression is enabled
         IndexMerger.merge(compressed);
 
         System.out.println("[INDEXER] Saving execution configuration...");

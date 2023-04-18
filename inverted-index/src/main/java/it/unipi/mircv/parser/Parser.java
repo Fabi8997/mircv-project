@@ -31,8 +31,7 @@ public class Parser {
         String docno;
         String text;
 
-        //long begin = System.currentTimeMillis();
-        // TODO: 03/11/2022 firstly check if the line is not malformed si is in the format <docno>\t<text>\n
+        // TODO: 03/11/2022 firstly check if the line is not malformed is in the format <docno>\t<text>\n
 
         //Divide the line using \t as delimiter, it'll split the doc_id and the text
         StringTokenizer stringTokenizer = new StringTokenizer(line, "\t");
