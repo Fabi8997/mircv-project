@@ -14,7 +14,7 @@ public class Main
     //Flag to indicate if the scoring function is bm25 (true) or TFIDF (false)
     private static boolean bm25scoring = false;
 
-    //Flag to indicate if the queryType is disjunctive (true) or disjunctive (false)
+    //Flag to indicate if the queryType is disjunctive (true) or conjunctive (false)
     private static boolean queryType = true;
 
 
@@ -37,6 +37,8 @@ public class Main
         //If no configuration is found, then no inverted index is present. The program exits.
         if(!configuration.loadConfiguration())
             return;
+        System.out.println("[QUERY PROCESSOR] Building inverted index configuration:");
+        System.out.println(configuration);
 
         //Flag to indicate if the stopwords removal and stemming are enabled, this must be retrieved from the configuration
         boolean stopwordsRemovalAndStemming = configuration.getStemmingAndStopwordsRemoval();
@@ -62,7 +64,7 @@ public class Main
 
                 //If the query string is equal to null it means that the query contains all stopwords or all the terms
                 // were written in a bad way or not present in the lexicon.
-                if(queryTerms == null){
+                if(queryTerms == null || queryTerms.length == 0) {
                     System.out.println("You're query is too vague, try to reformulate it.");
                     continue;
                 }
@@ -83,9 +85,23 @@ public class Main
                     //System.out.println(queryTerms[i] + ": " + postingLists[i].size());
                 }
 
-                // TODO: 17/04/2023 Pass query type argument 
+                ArrayList<Tuple<Long, Double>> result;
+
                 //Score the collection
-                System.out.println(Score.scoreCollection(postingLists,documentIndex, bm25scoring, queryType));
+                if(queryType){
+                    result = Score.scoreCollectionDisjunctive(postingLists,documentIndex, bm25scoring);
+                }else {
+                    result = Score.scoreCollectionConjunctive(postingLists,documentIndex, bm25scoring);
+                }
+
+                //Print the results in a formatted way
+                System.out.println("\n#\tDOCID\t\tSCORE");
+                for(int i = 0; i < result.size(); i++){
+                    System.out.println((i+1) + ")\t" + result.get(i).getFirst() +"\t"+result.get(i).getSecond());
+                }
+                System.out.println();
+
+                // TODO: 18/04/2023 Retrieve document given the docid
 
             } else if(command == 1) { //Change settings command
 

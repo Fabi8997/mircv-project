@@ -31,7 +31,6 @@ public class Configuration {
 
             fr.close();
 
-            System.out.println(this);
         } catch (IOException e) {
             System.err.println("No indexing configuration found. Try to first create a new index, then start again the"+
                     " query processor.");
@@ -83,7 +82,7 @@ public class Configuration {
 
     @Override
     public String toString() {
-        return "Stemming and stopwords removal = " + stemmingAndStopwordsRemoval +
-                "\nCompressed = " + compressed;
+        return "\tStemming and stopwords removal: " + stemmingAndStopwordsRemoval +
+                "\n\tCompressed: " + compressed;
     }
 }

@@ -10,6 +10,8 @@ public class Score {
     //Values used for the BM25 scoring
     static final double K1 = 1.5;
     static final double B = 0.75;
+    
+    static final int BEST_K_VALUE = 20;
 
     //Retrieve the statistics of the inverted index
     static final Statistics statistics = new Statistics();
@@ -22,7 +24,7 @@ public class Score {
      * @param BM25 if it is true, then the BM25 scoring is applied, otherwise the scoring is TFIDF.
      * @return an ordered array of tuples containing the document id and the score associated with the document.
      */
-    public static ArrayList<Tuple<Long,Double>> scoreCollection(PostingList[] postingLists, DocumentIndex documentIndex, boolean BM25, boolean queryType) {
+    public static ArrayList<Tuple<Long,Double>> scoreCollectionDisjunctive(PostingList[] postingLists, DocumentIndex documentIndex, boolean BM25) {
 
         //Priority queue to store the document id and its score, based on the priority of the document
         PriorityQueue<Tuple<Long,Double>> rankedDocs = new PriorityQueue<>((o1, o2) -> o2.getSecond().compareTo(o1.getSecond()));
@@ -33,7 +35,7 @@ public class Score {
         //Move the iterators of each posting list to the first position
         for (PostingList postingList : postingLists) {
             if (postingList.hasNext()) {
-                System.out.println(postingList.next());
+                postingList.next();
             }
         }
 
@@ -46,7 +48,7 @@ public class Score {
         double score = 0;
 
         //Access each posting list in a Document-At-a-Time fashion until no more postings are available
-        while (!allPostingsEnded(postingLists)) {
+        while (!allPostingListsEnded(postingLists)) {
 
             //Retrieve the minimum document id and the list of posting lists containing it
             minDocidTuple = minDocid(postingLists);
@@ -111,7 +113,105 @@ public class Score {
         //Print the time used to score the documents, so to generate an answer for the query
         System.out.println("[SCORE DOCUMENT] Total scoring time: " + (System.currentTimeMillis() - begin) + "ms");
 
-        return getBestKDocuments(rankedDocs, 20);
+        return getBestKDocuments(rankedDocs, BEST_K_VALUE);
+    }
+
+
+
+    public static ArrayList<Tuple<Long,Double>> scoreCollectionConjunctive(PostingList[] postingLists, DocumentIndex documentIndex, boolean BM25) {
+
+        //Priority queue to store the document id and its score, based on the priority of the document
+        PriorityQueue<Tuple<Long,Double>> rankedDocs = new PriorityQueue<>((o1, o2) -> o2.getSecond().compareTo(o1.getSecond()));
+
+        //Retrieve the time at the beginning of the computation
+        long begin = System.currentTimeMillis();
+
+        //Move the iterators of each posting list to the first position
+        for (PostingList postingList : postingLists) {
+            if (postingList.hasNext()) {
+                System.out.println(postingList.next());
+            }
+        }
+
+        //Tuple to store the current minimum document id and the list of posting lists containing it
+        Tuple<Long,ArrayList<Integer>> minDocidTuple;
+
+        //Support variables to accumulate over the iteration the score values
+        double tf_tfidf;
+        double tf_BM25;
+        double score = 0;
+
+        //Access each posting list in a Document-At-a-Time fashion until no more postings are available
+        while (!aPostingListEnded(postingLists)) {
+
+            //Retrieve the minimum document id and the list of posting lists containing it
+            minDocidTuple = minDocid(postingLists);
+
+            //Debug
+            //System.out.println("------------------");
+            //System.out.println("Min docID: " + minDocidTuple.getFirst());
+            //System.out.println("Blocks with minDocID: " + minDocidTuple.getSecond());
+
+            //For each index in the list of posting lists with min doc id
+            for(Integer index : minDocidTuple.getSecond()) {
+
+                //Skip the score of the document if it is not present in all the posting lists
+                if(minDocidTuple.getSecond().size() == postingLists.length) {
+
+                    //If the scoring is BM25
+                    if(BM25){
+
+                        //Compute the BM25's tf for the current posting
+                        tf_BM25 = postingLists[index].getFreq()/ (K1 * ((1-B) + B * ( (double)documentIndex.get(postingLists[index].getDocId()).getDocLength() / statistics.getAvdl()) + postingLists[index].getFreq()));
+
+                        //Add the partial score to the accumulated score
+                        score += tf_BM25*postingLists[index].getTermInfo().getIdf();
+
+                    }else {
+
+                        //Compute the TFIDF'S tf for the current posting
+                        tf_tfidf = 1 + Math.log(postingLists[index].getFreq()) / Math.log(2);
+
+                        //Add the partial score to the accumulated score
+                        score += tf_tfidf*postingLists[index].getTermInfo().getIdf();
+                    }
+                }
+
+                
+
+                //Move the cursor to the next posting (this must be done even if the document is not scored), if there
+                // is one, otherwise set the flag of the posting list to true, in this way we mark the end of the 
+                // posting list
+                if(postingLists[index].hasNext()){
+
+                    //Move the cursor to the next posting
+                    postingLists[index].next();
+                }else {
+
+                    //Debug
+                    System.out.println("no more postings");
+
+                    //Set the noMorePostings flag of the posting list to true
+                    postingLists[index].setNoMorePostings();
+                }
+            }
+
+            //If we have a document in all the posting lists then its score is relevant for the conjunctive query
+            // it's value must be added to the priority queue, otherwise the score is not relevant, and we don't add it.
+            if(minDocidTuple.getSecond().size() == postingLists.length) {
+                
+                //Add the score of the current document to the priority queue
+                rankedDocs.add(new Tuple<>(minDocidTuple.getFirst(), score));
+            }
+            
+            //Clear the support variables for the next iteration
+            score = 0;
+        }
+
+        //Print the time used to score the documents, so to generate an answer for the query
+        System.out.println("[SCORE DOCUMENT] Total scoring time: " + (System.currentTimeMillis() - begin) + "ms");
+
+        return getBestKDocuments(rankedDocs, BEST_K_VALUE);
     }
 
     /**
@@ -119,7 +219,7 @@ public class Score {
      * @param postingLists Array of posting lists.
      * @return true if all the posting lists are ended (no more postings), false otherwise.
      */
-    public static boolean allPostingsEnded(PostingList[] postingLists){
+    public static boolean allPostingListsEnded(PostingList[] postingLists){
 
         //For each posting list check if it has a next posting
         for (PostingList postingList : postingLists) {
@@ -133,6 +233,23 @@ public class Score {
         //If all the posting lists are traversed then return false
         return true;
     }
+
+    public static boolean aPostingListEnded(PostingList[] postingLists){
+
+        //For each posting list check if it has a next posting
+        for (PostingList postingList : postingLists) {
+
+            //If at least one posting is ended return true
+            if (postingList.noMorePostings()) {
+                return true;
+            }
+        }
+
+        //If all the posting lists are traversed then return false
+        return false;
+    }
+
+
 
     /**
      * Extract the first k tuples (docID, score) from the priority queue, in descending order of score.
