@@ -11,6 +11,8 @@ public class TermInfo {
     private String term;
     private long offsetDocId;
     private long offsetFrequency;
+    private long offsetSkipBlock;
+    private int numberOfSkipBlocks;
     private double idf;
     private int docIdsBytesLength;
 
@@ -34,9 +36,12 @@ public class TermInfo {
     public final static int POSTING_LIST_LENGTH = 4;
     public final static int IDF_LENGTH = 8;
 
-    public final static int TERM_INFO_LENGTH = TERM_LENGTH + OFFSET_DOCIDS_LENGTH + OFFSET_FREQUENCIES_LENGTH + BYTES_DOCID_LENGTH + BYTES_FREQUENCY_LENGTH + POSTING_LIST_LENGTH + IDF_LENGTH;
+    public final static int OFFSET_SKIPBLOCKS_LENGTH = 8;
+    public final static int NUMBER_OF_SKIPBLOCKS_LENGTH = 4;
 
-    public TermInfo(String term, long offsetDocId, long offsetFrequency, double idf, int docIdsBytesLength, int frequenciesBytesLength, int postingListLength) {
+    public final static int TERM_INFO_LENGTH = TERM_LENGTH + OFFSET_DOCIDS_LENGTH + OFFSET_SKIPBLOCKS_LENGTH +NUMBER_OF_SKIPBLOCKS_LENGTH + OFFSET_FREQUENCIES_LENGTH + BYTES_DOCID_LENGTH + BYTES_FREQUENCY_LENGTH + POSTING_LIST_LENGTH + IDF_LENGTH;
+
+    public TermInfo(String term, long offsetDocId, long offsetFrequency, double idf, int docIdsBytesLength, int frequenciesBytesLength, int postingListLength, long offsetSkipBlock, int numberOfSkipBlocks) {
         this.term = term;
         this.offsetDocId = offsetDocId;
         this.offsetFrequency = offsetFrequency;
@@ -44,25 +49,12 @@ public class TermInfo {
         this.docIdsBytesLength = docIdsBytesLength;
         this.frequenciesBytesLength = frequenciesBytesLength;
         this.postingListLength = postingListLength;
-    }
-
-    public TermInfo(String term, long offsetDocId, long offsetFrequency, int bytesDocId, int bytesFrequency, int postingListLength) {
-        this.term = term;
-        this.offsetDocId = offsetDocId;
-        this.offsetFrequency = offsetFrequency;
-        this.docIdsBytesLength = bytesDocId;
-        this.frequenciesBytesLength = bytesFrequency;
-        this.postingListLength = postingListLength;
+        this.numberOfSkipBlocks = numberOfSkipBlocks;
+        this.offsetSkipBlock = offsetSkipBlock;
     }
 
     public TermInfo(String term, long offsetDocId, long offsetFrequency, int postingListLength) {
         this.term = term;
-        this.offsetDocId = offsetDocId;
-        this.offsetFrequency = offsetFrequency;
-        this.postingListLength = postingListLength;
-    }
-
-    public TermInfo(int offsetDocId, int offsetFrequency, int postingListLength) {
         this.offsetDocId = offsetDocId;
         this.offsetFrequency = offsetFrequency;
         this.postingListLength = postingListLength;
@@ -114,6 +106,14 @@ public class TermInfo {
         return frequenciesBytesLength;
     }
 
+    public long getOffsetSkipBlock() {
+        return offsetSkipBlock;
+    }
+
+    public int getNumberOfSkipBlocks() {
+        return numberOfSkipBlocks;
+    }
+
     public void set(int offsetDocId, int offsetFrequency, int postingListLength){
         this.setOffsetDocId(offsetDocId);
         this.setOffsetFrequency(offsetFrequency);
@@ -154,9 +154,6 @@ public class TermInfo {
      * @param termInfo Information of the term to be written.
      */
     public void writeToFile(RandomAccessFile lexiconFile, TermInfo termInfo){
-
-        // TODO: 30/03/2023 Add also the TFIDF and BM25 writes
-
         //Fill with whitespaces to keep the length standard
         String tmp = Utils.leftpad(termInfo.getTerm(), TERM_LENGTH);
 
@@ -167,6 +164,8 @@ public class TermInfo {
         byte[] bytesFrequency = ByteBuffer.allocate(BYTES_FREQUENCY_LENGTH).putInt(termInfo.getFrequenciesBytesLength()).array();
         byte[] postingListLength = ByteBuffer.allocate(POSTING_LIST_LENGTH).putInt(termInfo.getPostingListLength()).array();
         byte[] idf = ByteBuffer.allocate(IDF_LENGTH).putDouble(termInfo.getIdf()).array();
+        byte[] offsetSkipBlocks = ByteBuffer.allocate(OFFSET_SKIPBLOCKS_LENGTH).putLong(termInfo.getOffsetSkipBlock()).array();
+        byte[] numberOfSkipBlocks = ByteBuffer.allocate(NUMBER_OF_SKIPBLOCKS_LENGTH).putInt(termInfo.getNumberOfSkipBlocks()).array();
         try {
             lexiconFile.write(term);
             lexiconFile.write(offsetDocId);
@@ -175,6 +174,8 @@ public class TermInfo {
             lexiconFile.write(bytesDocId);
             lexiconFile.write(bytesFrequency);
             lexiconFile.write(postingListLength);
+            lexiconFile.write(offsetSkipBlocks);
+            lexiconFile.write(numberOfSkipBlocks);
 
         } catch (IOException e) {
             throw new RuntimeException(e);

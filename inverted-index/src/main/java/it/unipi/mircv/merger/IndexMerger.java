@@ -23,6 +23,7 @@ public class IndexMerger {
     final static String LEXICON_PATH = "Files/lexicon.txt";
     final static String INVERTED_INDEX_DOC_IDS_PATH = "Files/docids.txt";
     final static String INVERTED_INDEX_FREQUENCIES_PATH = "Files/frequencies.txt";
+    final static String SKIP_BLOCKS_PATH = "Files/skipblocks.txt";
 
     /**
      * This method merges the inverted index and the lexicon blocks into one single file.
@@ -50,10 +51,12 @@ public class IndexMerger {
         RandomAccessFile lexiconFile;
         RandomAccessFile docIdsFile;
         RandomAccessFile frequenciesFile;
+        RandomAccessFile skipBlocksFile;
 
         //Accumulators to hold the current offset, starting from which the next list of postings will be written
         long docIdsOffset = 0;
         long frequenciesOffset = 0;
+        long skipBlocksOffset = 0;
 
         //Array of the current offset reached in each lexicon block
         int[] offsets = new int[NUMBER_OF_BLOCKS];
@@ -105,6 +108,8 @@ public class IndexMerger {
             lexiconFile = new RandomAccessFile(LEXICON_PATH, "rw");
             docIdsFile = new RandomAccessFile(INVERTED_INDEX_DOC_IDS_PATH, "rw");
             frequenciesFile = new RandomAccessFile(INVERTED_INDEX_FREQUENCIES_PATH, "rw");
+            skipBlocksFile = new RandomAccessFile(SKIP_BLOCKS_PATH, "rw");
+
 
         } catch (FileNotFoundException e) {
             System.err.println("[MERGER] File not found: " + e.getMessage());
@@ -205,7 +210,6 @@ public class IndexMerger {
             if(compress){
                 // TODO: 05/05/2023 Skip Block dentro compressione
 
-
                 //Compress the list of docIds using VBE
                 docIdsCompressed = variableByteEncodeDocId(docIds, skipBlocks);
 
@@ -230,7 +234,10 @@ public class IndexMerger {
                         idf,                         //idf
                         docIdsCompressed.length,     //length in bytes of the compressed docids list
                         frequenciesCompressed.length,//length in bytes of the compressed frequencies list
-                        docIds.size());              //Length of the posting list of the current term
+                        docIds.size(),               //Length of the posting list of the current term
+                        skipBlocksOffset,            //Offset of the SkipBlocks in the SkipBlocks file
+                        skipBlocks.size()            //number of SkipBlocks
+                        );
                 if(j%25000 == 0) {
                     System.out.println("[MERGER] idf = " + idf + ". TermInfo.idf = " + lexiconEntry.getIdf() + ". Term: " + lexiconEntry.getTerm());
                 }
@@ -278,8 +285,10 @@ public class IndexMerger {
                         idf,
                         docIds.size(),               //length in number of long in the docids list
                         frequencies.size(),          //length number of integers in the frequencies list
-                        docIds.size());              //Length of the posting list of the current term
-
+                        docIds.size(),               //Length of the posting list of the current term
+                        skipBlocksOffset,            //Offset of the SkipBlocks in the SkipBlocks file
+                        skipBlocks.size()            //number of SkipBlocks
+                );
                 //terminfo.setTFIDF()
                 //terminfo.setBM25()
                 lexiconEntry.writeToFile(lexiconFile, lexiconEntry);
@@ -290,6 +299,10 @@ public class IndexMerger {
 
             }
 
+            for(SkipBlock s : skipBlocks){
+                s.writeToFile(skipBlocksFile);
+                skipBlocksOffset += s.SKIP_BLOCK_LENGTH;
+            }
             //Clear the accumulators for the next iteration
             docIds.clear();
             frequencies.clear();

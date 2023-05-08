@@ -1,7 +1,5 @@
 package it.unipi.mircv.beans;
 
-import it.unipi.mircv.utils.Utils;
-
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
@@ -33,19 +31,7 @@ public class SkipBlock {
     int MAX_DOC_ID_LENGTH = 8;
 
     //Length in byte of each skip block (32)
-    int SKIP_BLOCK_LENGTH = 2*OFFSET_LENGTH + 2*SKIP_BLOCK_DIMENSION_LENGTH + MAX_DOC_ID_LENGTH;
-
-    /**
-     * Constructor for the SkipBlock class.
-     * @param startDocidOffset starting offset of the respective doc id block in the docids.txt file.
-     * @param startFreqOffset starting offset of the respective freq block in the frequencies.txt file.
-     * @param maxDocid maximum doc id in the block represented by this skipBlock.
-     */
-    public SkipBlock(long startDocidOffset, long startFreqOffset, long maxDocid) {
-        this.startDocidOffset = startDocidOffset;
-        this.startFreqOffset = startFreqOffset;
-        this.maxDocid = maxDocid;
-    }
+    public int SKIP_BLOCK_LENGTH = 2*OFFSET_LENGTH + 2*SKIP_BLOCK_DIMENSION_LENGTH + MAX_DOC_ID_LENGTH;
 
     /**
      * Constructor for the SkipBlock class.
@@ -65,38 +51,27 @@ public class SkipBlock {
         this.skipBlockFreqLength = skipBlockFreqLength;
     }
 
-    public void setSkipBlockDocidLength(int skipBlockDocidLength) {
-        this.skipBlockDocidLength = skipBlockDocidLength;
-    }
-
     /**
      * Write the term info to a file. This method is used during the merge of the partial blocks, here we have
      * all the information directly inside the termInfo object.
      * @param skipBlocksFile Is the random access file on which the term info is written.
      */
     public void writeToFile(RandomAccessFile skipBlocksFile){
-
-        /*// TODO: 08/05/2023 Scrivere il writeToFile per questo, e in merger il write to file di array list
-
-        byte[] term = ByteBuffer.allocate(TERM_LENGTH).put(tmp.getBytes()).array();
-        byte[] offsetDocId = ByteBuffer.allocate(OFFSET_DOCIDS_LENGTH).putLong(termInfo.getOffsetDocId()).array();
-        byte[] offsetFrequency = ByteBuffer.allocate(OFFSET_FREQUENCIES_LENGTH).putLong(termInfo.getOffsetFrequency()).array();
-        byte[] bytesDocId = ByteBuffer.allocate(BYTES_DOCID_LENGTH).putInt(termInfo.getDocIdsBytesLength()).array();
-        byte[] bytesFrequency = ByteBuffer.allocate(BYTES_FREQUENCY_LENGTH).putInt(termInfo.getFrequenciesBytesLength()).array();
-        byte[] postingListLength = ByteBuffer.allocate(POSTING_LIST_LENGTH).putInt(termInfo.getPostingListLength()).array();
-        byte[] idf = ByteBuffer.allocate(IDF_LENGTH).putDouble(termInfo.getIdf()).array();
+        byte[] startDocIdOffset = ByteBuffer.allocate(OFFSET_LENGTH).putLong(this.startDocidOffset).array();
+        byte[] skipBlockDocIdLength = ByteBuffer.allocate(SKIP_BLOCK_DIMENSION_LENGTH).putInt(this.skipBlockDocidLength).array();
+        byte[] startFreqOffset = ByteBuffer.allocate(OFFSET_LENGTH).putLong(this.startFreqOffset).array();
+        byte[] skipBlockFreqLength = ByteBuffer.allocate(SKIP_BLOCK_DIMENSION_LENGTH).putInt(this.skipBlockFreqLength).array();
+        byte[] maxDocId = ByteBuffer.allocate(MAX_DOC_ID_LENGTH).putLong(this.maxDocid).array();
         try {
-            lexiconFile.write(term);
-            lexiconFile.write(offsetDocId);
-            lexiconFile.write(offsetFrequency);
-            lexiconFile.write(idf);
-            lexiconFile.write(bytesDocId);
-            lexiconFile.write(bytesFrequency);
-            lexiconFile.write(postingListLength);
+            skipBlocksFile.write(startDocIdOffset);
+            skipBlocksFile.write(skipBlockDocIdLength);
+            skipBlocksFile.write(startFreqOffset);
+            skipBlocksFile.write(skipBlockFreqLength);
+            skipBlocksFile.write(maxDocId);
 
         } catch (IOException e) {
             throw new RuntimeException(e);
-        }*/
+        }
     }
 
     @Override
