@@ -79,7 +79,7 @@ public class Main
                     postingLists[i] = new PostingList();
 
                     //Load in memory the posting list of the i-th query term
-                    postingLists[i].openList(lexicon.get(queryTerms[i]));
+                    postingLists[i].openList(lexicon.get(queryTerms[i]), queryType);
 
                     //Debug
                     //System.out.println(queryTerms[i] + ": " + postingLists[i].size());

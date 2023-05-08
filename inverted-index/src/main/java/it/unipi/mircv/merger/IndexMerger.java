@@ -1,6 +1,7 @@
 package it.unipi.mircv.merger;
 
 import it.unipi.mircv.beans.PostingList;
+import it.unipi.mircv.beans.SkipBlock;
 import it.unipi.mircv.beans.Statistics;
 import it.unipi.mircv.beans.TermInfo;
 
@@ -83,6 +84,9 @@ public class IndexMerger {
         //Array to store the docIds and frequencies of the posting list of the current min term in the current block
         ArrayList<Long> docIds = new ArrayList<>();
         ArrayList<Integer> frequencies = new ArrayList<>();
+
+        //Array to store the information about the skipBlocks
+        ArrayList<SkipBlock> skipBlocks = new ArrayList<>();
 
         //Arrays to store the compressed docIds and frequencies of the posting list of the current min term
         byte[] docIdsCompressed;
@@ -199,11 +203,14 @@ public class IndexMerger {
             }
 
             if(compress){
+                // TODO: 05/05/2023 Skip Block dentro compressione
+
+
                 //Compress the list of docIds using VBE
-                docIdsCompressed = variableByteEncodeLong(docIds);
+                docIdsCompressed = variableByteEncodeDocId(docIds, skipBlocks);
 
                 //Compress the list of frequencies using VBE
-                frequenciesCompressed = variableByteEncodeInt(frequencies);
+                frequenciesCompressed = variableByteEncodeFreq(frequencies, skipBlocks);
 
                 //Write the docIds and frequencies of the current term in the respective files
                 try {
@@ -240,6 +247,10 @@ public class IndexMerger {
 
             }else {//No compression
 
+                // TODO: 05/05/2023 Contare la lunghezza e ogni lunghezza aggiornare lo skipBlock
+
+                // TODO: 05/05/2023 Implementare gli skip block come parte di questo, gestire i casi in cui c'è solo
+                //  elemento
                 //Write the docIds and frequencies of the current term in the respective files
                 try {
 
@@ -282,6 +293,7 @@ public class IndexMerger {
             //Clear the accumulators for the next iteration
             docIds.clear();
             frequencies.clear();
+            skipBlocks.clear();
             minTerm = null; //Otherwise it will be always the first min term found at the beginning of the merge
             blocksWithMinTerm.clear(); //Clear the list of blocks with the min term
         }

@@ -33,6 +33,10 @@ public class PostingList extends ArrayList<Posting> {
 
     //TermInfo of the term, used to retrieve the idf
     private TermInfo termInfo;
+
+    //Skip blocks of the posting list
+    private ArrayList<SkipBlock> skipBlocks;
+
     /**
      * Constructor
      */
@@ -41,11 +45,19 @@ public class PostingList extends ArrayList<Posting> {
         noMorePostings = false;
     }
 
+    public void openList(TermInfo termInfo, boolean queryType) {
+        if(queryType){
+            openListDisjunctive(termInfo);
+        } else{
+            openListConjunctive(termInfo);
+        }
+    }
+
     /**
-     * Loads the posting list of the given term in memory
+     * Loads the posting list of the given term in memory, here the skipping is not needed.
      * @param termInfo Lexicon entry of the term, used to retrieve the offsets and the lengths of the posting list
      */
-    public void openList(TermInfo termInfo){
+    private void openListDisjunctive(TermInfo termInfo){
 
         this.termInfo = termInfo;
 
@@ -56,6 +68,51 @@ public class PostingList extends ArrayList<Posting> {
         try(    RandomAccessFile randomAccessFileDocIds = new RandomAccessFile(DOCIDS_PATH, "r");
                 RandomAccessFile randomAccessFileFrequencies = new RandomAccessFile(FREQUENCIES_PATH, "r")
                 ){
+
+            //Retrieve the docids and the frequencies
+            ArrayList<Long> docids;
+            ArrayList<Integer> frequencies;
+
+            //If the compression is enabled, then read the posting lists files with the compression
+            if(configuration.getCompressed()) {
+
+                docids = readPostingListDocIdsCompressed(randomAccessFileDocIds, termInfo.getOffsetDocId(), termInfo.getDocIdsBytesLength());
+                frequencies = readPostingListFrequenciesCompressed(randomAccessFileFrequencies, termInfo.getOffsetFrequency(), termInfo.getFrequenciesBytesLength());
+            }else {//Read without compression
+
+                docids = readPostingListDocIds(randomAccessFileDocIds,termInfo.getOffsetDocId(),termInfo.getDocIdsBytesLength());
+                frequencies = readPostingListFrequencies(randomAccessFileFrequencies, termInfo.getOffsetFrequency(), termInfo.getFrequenciesBytesLength());
+            }
+
+            //Create the array list of postings
+            for(int i = 0; i < termInfo.getPostingListLength(); i++){
+                this.add(new Posting(docids.get(i), frequencies.get(i)));
+            }
+        }catch (IOException e){
+            System.err.println("[OpenList] Exception during opening posting list");
+            throw new RuntimeException(e);
+        }
+
+        iterator = this.iterator();
+    }
+
+    /**
+     * Loads the posting list of the given term in memory, this list uses the skipping mechanism.
+     * @param termInfo Lexicon entry of the term, used to retrieve the offsets and the lengths of the posting list
+     */
+    private void openListConjunctive(TermInfo termInfo){
+
+        // TODO: 05/05/2023 Load skip blocks
+
+        this.termInfo = termInfo;
+
+        Configuration configuration = new Configuration();
+        configuration.loadConfiguration();
+
+        //Open the stream with the posting list files
+        try(    RandomAccessFile randomAccessFileDocIds = new RandomAccessFile(DOCIDS_PATH, "r");
+                RandomAccessFile randomAccessFileFrequencies = new RandomAccessFile(FREQUENCIES_PATH, "r")
+        ){
 
             //Retrieve the docids and the frequencies
             ArrayList<Long> docids;
@@ -100,6 +157,17 @@ public class PostingList extends ArrayList<Posting> {
         //Return the next
         return result;
     }
+
+    public Posting nextGEQ(long docId){
+
+        // TODO: 05/05/2023 Implementare nextGEQ
+
+        return null;
+    }
+
+
+
+
 
     /**
      * Returns true if the iteration has more elements.
