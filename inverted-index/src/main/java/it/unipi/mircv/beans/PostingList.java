@@ -102,7 +102,7 @@ public class PostingList extends ArrayList<Posting> {
      */
     private void openListConjunctive(TermInfo termInfo){
 
-        // TODO: 05/05/2023 Load skip blocks
+        //TODO: 05/05/2023 Load skip blocks + implement
 
         this.termInfo = termInfo;
 

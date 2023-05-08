@@ -178,7 +178,7 @@ public class Score {
                 }
 
                 
-
+                //TODO: call nextGEQ()
                 //Move the cursor to the next posting (this must be done even if the document is not scored), if there
                 // is one, otherwise set the flag of the posting list to true, in this way we mark the end of the 
                 // posting list
