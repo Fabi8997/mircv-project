@@ -24,14 +24,14 @@ public class SkipBlock {
     //maximum doc id in the block represented by this skipBlock.
     long maxDocid;
 
-    int OFFSET_LENGTH = 8;
+    static final int OFFSET_LENGTH = 8;
 
-    int SKIP_BLOCK_DIMENSION_LENGTH = 4;
+    static final int SKIP_BLOCK_DIMENSION_LENGTH = 4;
 
-    int MAX_DOC_ID_LENGTH = 8;
+    static final int MAX_DOC_ID_LENGTH = 8;
 
     //Length in byte of each skip block (32)
-    public int SKIP_BLOCK_LENGTH = 2*OFFSET_LENGTH + 2*SKIP_BLOCK_DIMENSION_LENGTH + MAX_DOC_ID_LENGTH;
+    public static final int SKIP_BLOCK_LENGTH = 2*OFFSET_LENGTH + 2*SKIP_BLOCK_DIMENSION_LENGTH + MAX_DOC_ID_LENGTH;
 
     /**
      * Constructor for the SkipBlock class.
@@ -43,6 +43,14 @@ public class SkipBlock {
         this.skipBlockDocidLength = skipBlockDocidLength;
         this.skipBlockFreqLength = -1;
         this.startFreqOffset = -1;
+        this.maxDocid = maxDocid;
+    }
+
+    public SkipBlock(long startDocidOffset, int skipBlockDocidLength, long startFreqOffset, int skipBlockFreqLength, long maxDocid) {
+        this.startDocidOffset = startDocidOffset;
+        this.skipBlockDocidLength = skipBlockDocidLength;
+        this.startFreqOffset = startFreqOffset;
+        this.skipBlockFreqLength = skipBlockFreqLength;
         this.maxDocid = maxDocid;
     }
 

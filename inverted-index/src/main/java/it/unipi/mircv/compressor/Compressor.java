@@ -260,7 +260,11 @@ public class Compressor {
 
         ArrayList<SkipBlock> skipBlocks = new ArrayList<SkipBlock>();
 
-        variableByteEncodeDocId(numbers, skipBlocks);
+        for(SkipBlock sb : skipBlocks){
+            System.out.println(sb);
+        }
+
+        /*variableByteEncodeDocId(numbers, skipBlocks);
 
         for(SkipBlock sb : skipBlocks){
             System.out.println(sb);
@@ -277,7 +281,9 @@ public class Compressor {
 
         for(SkipBlock sb : skipBlocks){
             System.out.println(sb);
-        }
+        }*/
 
     }
+
+
 }

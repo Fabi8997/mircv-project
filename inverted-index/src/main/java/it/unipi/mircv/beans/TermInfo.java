@@ -184,14 +184,14 @@ public class TermInfo {
 
     @Override
     public String toString() {
-        return "TermInfo{" +
-                "term='" + term + '\'' +
+        return "term='" + term + '\'' +
                 ", offsetDocId=" + offsetDocId +
                 ", offsetFrequency=" + offsetFrequency +
+                ", offsetSkipBlock=" + offsetSkipBlock +
+                ", numberOfSkipBlocks=" + numberOfSkipBlocks +
+                ", idf=" + idf +
                 ", docIdsBytesLength=" + docIdsBytesLength +
                 ", frequenciesBytesLength=" + frequenciesBytesLength +
-                ", postingListLength=" + postingListLength +
-                ", idf=" + idf +
-                '}';
+                ", postingListLength=" + postingListLength;
     }
 }
