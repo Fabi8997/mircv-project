@@ -2,6 +2,7 @@ package it.unipi.mircv.beans;
 
 import it.unipi.mircv.compressor.Compressor;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
@@ -25,6 +26,9 @@ public class PostingList extends ArrayList<Posting> {
     //Iterator to iterate over the posting list
     private Iterator<Posting> iterator;
 
+    //Iterator to iterate over the skip blocks
+    private Iterator<SkipBlock> skipBlocksIterator;
+
     //Path of docids file
     private final static String DOCIDS_PATH = "Files/docids.txt";
 
@@ -37,8 +41,18 @@ public class PostingList extends ArrayList<Posting> {
     //TermInfo of the term, used to retrieve the idf
     private TermInfo termInfo;
 
+    //
+    private SkipBlock currentSkipBlock;
+
     //Skip blocks of the posting list
     private ArrayList<SkipBlock> skipBlocks; // TODO: 10/05/2023 To use in nextGEQ
+
+    private Configuration configuration;
+
+    RandomAccessFile randomAccessFileDocIds;
+    RandomAccessFile randomAccessFileFrequencies;
+    RandomAccessFile randomAccessFileSkipBlocks;
+
 
     /**
      * Constructor
@@ -64,7 +78,7 @@ public class PostingList extends ArrayList<Posting> {
 
         this.termInfo = termInfo;
 
-        Configuration configuration = new Configuration();
+        configuration = new Configuration();
         configuration.loadConfiguration();
 
         //Open the stream with the posting list files
@@ -107,48 +121,69 @@ public class PostingList extends ArrayList<Posting> {
 
         this.termInfo = termInfo;
 
-        Configuration configuration = new Configuration();
+        configuration = new Configuration();
         configuration.loadConfiguration();
 
         //Open the stream with the posting list files
-        try(    RandomAccessFile randomAccessFileDocIds = new RandomAccessFile(DOCIDS_PATH, "r");
-                RandomAccessFile randomAccessFileFrequencies = new RandomAccessFile(FREQUENCIES_PATH, "r");
-                RandomAccessFile randomAccessFileSkipBlocks = new RandomAccessFile(SKIP_BLOCKS_PATH,"r")
-        ){
-
-            //Retrieve the docids and the frequencies
-            ArrayList<Long> docids;
-            ArrayList<Integer> frequencies;
-
-            //If the compression is enabled, then read the posting lists files with the compression
-            if(configuration.getCompressed()) {
-
-                docids = readPostingListDocIdsCompressed(randomAccessFileDocIds, termInfo.getOffsetDocId(), termInfo.getDocIdsBytesLength());
-                frequencies = readPostingListFrequenciesCompressed(randomAccessFileFrequencies, termInfo.getOffsetFrequency(), termInfo.getFrequenciesBytesLength());
-            }else {//Read without compression
-
-                docids = readPostingListDocIds(randomAccessFileDocIds,termInfo.getOffsetDocId(),termInfo.getDocIdsBytesLength());
-                frequencies = readPostingListFrequencies(randomAccessFileFrequencies, termInfo.getOffsetFrequency(), termInfo.getFrequenciesBytesLength());
-            }
-
-            //Create the array list of postings
-            for(int i = 0; i < termInfo.getPostingListLength(); i++){
-                this.add(new Posting(docids.get(i), frequencies.get(i)));
-            }
-
-            //Load the skip blocks list of the current term's posting list
-            skipBlocks = readPostingListSkipBlocks(
-                            randomAccessFileSkipBlocks,
-                            termInfo.getOffsetSkipBlock(),
-                            termInfo.getNumberOfSkipBlocks()
-                         );
-
-        }catch (IOException e){
-            System.err.println("[OpenList] Exception during opening posting list");
+        try {
+            randomAccessFileDocIds = new RandomAccessFile(DOCIDS_PATH, "r");
+            randomAccessFileFrequencies = new RandomAccessFile(FREQUENCIES_PATH, "r");
+            randomAccessFileSkipBlocks = new RandomAccessFile(SKIP_BLOCKS_PATH,"r");
+        } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
 
-        // TODO: 10/05/2023 Skip block iterator for nextGEQ
+
+        //Load the skip blocks list of the current term's posting list
+        skipBlocks = readPostingListSkipBlocks(
+                randomAccessFileSkipBlocks,
+                termInfo.getOffsetSkipBlock(),
+                termInfo.getNumberOfSkipBlocks()
+        );
+
+        //initialize the skip blocks iterator
+        skipBlocksIterator = skipBlocks.iterator();
+
+        //move the skip blocks'0 iterator to the first skip block
+        nextSkipBlock();
+
+        //Load the posting list of the current block
+        loadPostingList();
+
+        //System.out.println(this);
+
+        //System.out.println(skipBlocks.get(0));
+
+    }
+
+    public void loadPostingList(){
+        //Retrieve the docids and the frequencies
+        ArrayList<Long> docids;
+        ArrayList<Integer> frequencies;
+
+        //If the compression is enabled, then read the posting lists files with the compression
+        if(configuration.getCompressed()) {
+
+            docids = readPostingListDocIdsCompressed(randomAccessFileDocIds,
+                    termInfo.getOffsetDocId() + currentSkipBlock.startDocidOffset,
+                    currentSkipBlock.skipBlockDocidLength);
+
+            frequencies = readPostingListFrequenciesCompressed(randomAccessFileFrequencies,
+                    termInfo.getOffsetFrequency() + currentSkipBlock.startFreqOffset,
+                    currentSkipBlock.skipBlockFreqLength);
+        }else {//Read without compression
+
+            docids = readPostingListDocIds(randomAccessFileDocIds,termInfo.getOffsetDocId(),skipBlocks.get(0).skipBlockDocidLength);
+            frequencies = readPostingListFrequencies(randomAccessFileFrequencies, termInfo.getOffsetFrequency(), skipBlocks.get(0).skipBlockFreqLength);
+        }
+
+        //Remove the previous postings
+        this.clear();
+
+        //Create the array list of postings
+        for(int i = 0; i < docids.size() ; i++){
+            this.add(new Posting(docids.get(i), frequencies.get(i)));
+        }
 
         iterator = this.iterator();
     }
@@ -169,10 +204,37 @@ public class PostingList extends ArrayList<Posting> {
         //Return the next
         return result;
     }
+    public void nextSkipBlock(){
+        currentSkipBlock = skipBlocksIterator.next();
+    }
 
-    public Posting nextGEQ(long docId){
+    public Posting nextGEQ(long searchedDocId){
 
-        // TODO: 05/05/2023 Implementare nextGEQ
+        while(currentSkipBlock.maxDocid < searchedDocId){
+            System.out.println(currentSkipBlock.maxDocid +" < "+ searchedDocId);
+            if(skipBlocksIterator.hasNext()){
+                System.out.println("changing the skip block");
+                nextSkipBlock();
+            }else{
+
+                System.out.println("end of posting list");
+                setNoMorePostings();
+                return null;
+            }
+        }
+
+        //load the posting lists related to the current skip block
+        loadPostingList();
+
+        Posting posting;
+
+        while(iterator.hasNext()){
+            posting = next();
+            if(this.docId >= searchedDocId){
+                System.out.println(this.docId + "stopped here");
+                return posting;
+            }
+        }
 
         return null;
     }
@@ -230,6 +292,14 @@ public class PostingList extends ArrayList<Posting> {
 
     public TermInfo getTermInfo() {
         return termInfo;
+    }
+
+    public SkipBlock getCurrentSkipBlock() {
+        return currentSkipBlock;
+    }
+
+    public Iterator<SkipBlock> getSkipBlocksIterator() {
+        return skipBlocksIterator;
     }
 
 
