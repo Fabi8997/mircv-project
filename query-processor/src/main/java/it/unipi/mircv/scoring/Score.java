@@ -147,18 +147,27 @@ public class Score {
             //Retrieve the minimum document id and the list of posting lists containing it
             maxDocid = maxDocid(postingLists);
 
+            //Perform the nextGEQ operation for each posting list
             for(PostingList postingList : postingLists){
-               if(postingList.nextGEQ(maxDocid) == null || postingList.noMorePostings())
+
+                //If we reach the end of the posting list then we break the for, the conjuctive query is ended
+                // and all the next conditions are not satisfied
+                if(postingList.nextGEQ(maxDocid) == null || postingList.noMorePostings())
                    break;
             }
 
+            //If the current doc id is equal in all the posting lists
             if(areAllEqual(postingLists)){
 
+                //Debug
                 System.out.println("--------------------------------");
 
+                //Score the document
                 for(PostingList postingList : postingLists) {
 
+                    //Debug
                     System.out.println(postingList.getDocId());
+
                     //If the scoring is BM25
                     if (BM25) {
 
@@ -195,10 +204,11 @@ public class Score {
 
                 }
 
+                //Debug
                 System.out.println("--------------------------------");
-                //If we have a document in all the posting lists then its score is relevant for the conjunctive query
-                // it's value must be added to the priority queue, otherwise the score is not relevant, and we don't add it.
 
+                //Since we have a document in all the posting lists then its score is relevant for the conjunctive query
+                // it's value must be added to the priority queue, otherwise the score is not relevant, and we don't add it.
                 //Add the score of the current document to the priority queue
                 rankedDocs.add(new Tuple<>(maxDocid, score));
             }
@@ -210,15 +220,23 @@ public class Score {
         //Print the time used to score the documents, so to generate an answer for the query
         System.out.println("[SCORE DOCUMENT] Total scoring time: " + (System.currentTimeMillis() - begin) + "ms");
 
+        //Return the top k documents
         return getBestKDocuments(rankedDocs, BEST_K_VALUE);
     }
 
+    /**
+     * Check if all the current doc ids of each posting list are equal.
+     * @param postingLists array of posting lists to check
+     * @return true if all the current doc ids are equal, false otherwise
+     */
     private static boolean areAllEqual(PostingList[] postingLists){
 
         long docid = -1;
 
+        //Traverse all the posting lists if two different docids are found, then return false
         for(PostingList postingList : postingLists){
 
+            //If at least one is ended
             if(postingList == null){
                 return false;
             }
@@ -230,6 +248,7 @@ public class Score {
             }
         }
 
+        //All the docids are equal
         return true;
     }
 
@@ -356,9 +375,16 @@ public class Score {
     }
 
 
+    /**
+     * Get the maximum document id from the passed posting list array
+     * @param postingLists posting list from which analyze the current docid to retrieve the maximum
+     * @return the maximum document id
+     */
     private static long maxDocid(PostingList[] postingLists){
 
         long max = -1;
+
+        //Traverse the array of posting list and find the maximum document id among the current doc ids
         for(PostingList postingList : postingLists){
             if(postingList.getDocId() > max){
                 max = postingList.getDocId();
