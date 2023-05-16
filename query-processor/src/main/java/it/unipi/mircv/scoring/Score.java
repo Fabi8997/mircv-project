@@ -150,7 +150,7 @@ public class Score {
             //Perform the nextGEQ operation for each posting list
             for(PostingList postingList : postingLists){
 
-                //If we reach the end of the posting list then we break the for, the conjuctive query is ended
+                //If we reach the end of the posting list then we break the for, the conjunctive query is ended
                 // and all the next conditions are not satisfied
                 if(postingList.nextGEQ(maxDocid) == null || postingList.noMorePostings())
                    break;
