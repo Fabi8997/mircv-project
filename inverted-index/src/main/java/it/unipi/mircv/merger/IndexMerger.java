@@ -1,6 +1,7 @@
 package it.unipi.mircv.merger;
 
 import it.unipi.mircv.beans.PostingList;
+import it.unipi.mircv.beans.SkipBlock;
 import it.unipi.mircv.beans.Statistics;
 import it.unipi.mircv.beans.TermInfo;
 
@@ -22,6 +23,7 @@ public class IndexMerger {
     final static String LEXICON_PATH = "Files/lexicon.txt";
     final static String INVERTED_INDEX_DOC_IDS_PATH = "Files/docids.txt";
     final static String INVERTED_INDEX_FREQUENCIES_PATH = "Files/frequencies.txt";
+    final static String SKIP_BLOCKS_PATH = "Files/skipblocks.txt";
 
     /**
      * This method merges the inverted index and the lexicon blocks into one single file.
@@ -49,10 +51,12 @@ public class IndexMerger {
         RandomAccessFile lexiconFile;
         RandomAccessFile docIdsFile;
         RandomAccessFile frequenciesFile;
+        RandomAccessFile skipBlocksFile;
 
         //Accumulators to hold the current offset, starting from which the next list of postings will be written
         long docIdsOffset = 0;
         long frequenciesOffset = 0;
+        long skipBlocksOffset = 0;
 
         //Array of the current offset reached in each lexicon block
         int[] offsets = new int[NUMBER_OF_BLOCKS];
@@ -84,6 +88,9 @@ public class IndexMerger {
         ArrayList<Long> docIds = new ArrayList<>();
         ArrayList<Integer> frequencies = new ArrayList<>();
 
+        //Array to store the information about the skipBlocks
+        ArrayList<SkipBlock> skipBlocks = new ArrayList<>();
+
         //Arrays to store the compressed docIds and frequencies of the posting list of the current min term
         byte[] docIdsCompressed;
         byte[] frequenciesCompressed;
@@ -101,6 +108,8 @@ public class IndexMerger {
             lexiconFile = new RandomAccessFile(LEXICON_PATH, "rw");
             docIdsFile = new RandomAccessFile(INVERTED_INDEX_DOC_IDS_PATH, "rw");
             frequenciesFile = new RandomAccessFile(INVERTED_INDEX_FREQUENCIES_PATH, "rw");
+            skipBlocksFile = new RandomAccessFile(SKIP_BLOCKS_PATH, "rw");
+
 
         } catch (FileNotFoundException e) {
             System.err.println("[MERGER] File not found: " + e.getMessage());
@@ -198,12 +207,15 @@ public class IndexMerger {
 
             }
 
-            if(compress){
-                //Compress the list of docIds using VBE
-                docIdsCompressed = variableByteEncodeLong(docIds);
 
-                //Compress the list of frequencies using VBE
-                frequenciesCompressed = variableByteEncodeInt(frequencies);
+
+            if(compress){
+
+                //Compress the list of docIds using VBE and create the list of skip blocks for the list of docids
+                docIdsCompressed = variableByteEncodeDocId(docIds, skipBlocks);
+
+                //Compress the list of frequencies using VBE and update the frequencies information in the skip blocks
+                frequenciesCompressed = variableByteEncodeFreq(frequencies, skipBlocks);
 
                 //Write the docIds and frequencies of the current term in the respective files
                 try {
@@ -214,6 +226,7 @@ public class IndexMerger {
                     throw new RuntimeException(e);
                 }
 
+                //Compute idf
                 double idf = Math.log(statistics.getNumberOfDocuments()/ (double)docIds.size())/Math.log(2);
 
                 lexiconEntry = new TermInfo(
@@ -223,15 +236,16 @@ public class IndexMerger {
                         idf,                         //idf
                         docIdsCompressed.length,     //length in bytes of the compressed docids list
                         frequenciesCompressed.length,//length in bytes of the compressed frequencies list
-                        docIds.size());              //Length of the posting list of the current term
-                if(j%25000 == 0) {
+                        docIds.size(),               //Length of the posting list of the current term
+                        skipBlocksOffset,            //Offset of the SkipBlocks in the SkipBlocks file
+                        skipBlocks.size()            //number of SkipBlocks
+                        );
+
+                //For DEBUG
+                /*if(j%25000 == 0) {
                     System.out.println("[MERGER] idf = " + idf + ". TermInfo.idf = " + lexiconEntry.getIdf() + ". Term: " + lexiconEntry.getTerm());
-                }
-                //if(minTerm.equals("dog") || minTerm.equals("ball") || minTerm.equals("sport")){
-                //     System.out.println("[MERGER] idf = " + idf + ". TermInfo.idf = " + lexiconEntry.getIdf() + ". Term: " + lexiconEntry.getTerm());
-                // }
-                //terminfo.setTFIDF()
-                //terminfo.setBM25()
+                }*/
+
                 lexiconEntry.writeToFile(lexiconFile, lexiconEntry);
 
                 docIdsOffset += docIdsCompressed.length;
@@ -243,21 +257,54 @@ public class IndexMerger {
                 //Write the docIds and frequencies of the current term in the respective files
                 try {
 
-                    //Write the docIds as a long to the end of the docIds file
-                    for (Long docId : docIds) {
-                        docIdsFile.writeLong(docId);
+                    //Dimension of each skip block
+                    int skipBlocksLength = (int) Math.floor(Math.sqrt(docIds.size()));
+
+                    //Number of postings
+                    int skipBlocksElements = 0;
+
+                    //Write the docids and frequencies in their respective files and create the skip blocks
+                    for(int i=0; i < docIds.size(); i++) {
+
+                        //Write the docIds as a long to the end of the docIds file
+                        docIdsFile.writeLong(docIds.get(i));
+
+                        //Write the frequencies as an integer to the end of the frequencies file
+                        frequenciesFile.writeInt(frequencies.get(i));
+
+                        //If we're at a skip position, we create a new skip block
+                        if(((i+1)%skipBlocksLength == 0) || ((i + 1) == docIds.size())){
+
+                            //if the size of the skip block is less than skipBlocksLength then used the reminder,
+                            // to get the actual dimension of the skip block, since if we're at the end we can have less
+                            // than skipBlockLength postings
+                            // Since we don't have compression the lengths of docids and frequencies skip blocks are the same
+                            int currentSkipBlockSize = ((i + 1) % skipBlocksLength == 0) ? skipBlocksLength : ((i+1) % skipBlocksLength);
+
+                            //Creation of the skip block
+                            skipBlocks.add(new SkipBlock(
+                                    (long) skipBlocksElements *Long.BYTES,
+                                    currentSkipBlockSize,
+                                    (long) skipBlocksElements *Integer.BYTES,
+                                    currentSkipBlockSize,
+                                    docIds.get(i)
+                            ));
+
+                            //Increment the number of elements seen until now, otherwise we're not able to obtain the first offset
+                            // equal to 0
+                            skipBlocksElements += currentSkipBlockSize;
+                        }
+
                     }
 
-                    //Write the frequencies as an integer to the end of the frequencies file
-                    for (Integer frequency : frequencies) {
-                        frequenciesFile.writeInt(frequency);
-                    }
+
                 } catch (IOException e) {
                     System.err.println("[MERGER] File not found: " + e.getMessage());
                     throw new RuntimeException(e);
                 }
 
                 double idf = Math.log(statistics.getNumberOfDocuments()/ (double)docIds.size())/Math.log(2);
+
                 //Instantiate a new TermInfo object with the current term information, here we use the information in
                 //the docids and frequencies objects
                 lexiconEntry = new TermInfo(
@@ -267,7 +314,10 @@ public class IndexMerger {
                         idf,
                         docIds.size(),               //length in number of long in the docids list
                         frequencies.size(),          //length number of integers in the frequencies list
-                        docIds.size());              //Length of the posting list of the current term
+                        docIds.size(),               //Length of the posting list of the current term
+                        skipBlocksOffset,            //Offset of the SkipBlocks in the SkipBlocks file
+                        skipBlocks.size()            //number of SkipBlocks
+                );
 
                 //terminfo.setTFIDF()
                 //terminfo.setBM25()
@@ -279,9 +329,15 @@ public class IndexMerger {
 
             }
 
+            for(SkipBlock s : skipBlocks){
+                s.writeToFile(skipBlocksFile);
+                skipBlocksOffset += SkipBlock.SKIP_BLOCK_LENGTH;
+            }
+
             //Clear the accumulators for the next iteration
             docIds.clear();
             frequencies.clear();
+            skipBlocks.clear();
             minTerm = null; //Otherwise it will be always the first min term found at the beginning of the merge
             blocksWithMinTerm.clear(); //Clear the list of blocks with the min term
         }
@@ -401,6 +457,8 @@ public class IndexMerger {
         }
         return true;
     }
+
+
     public static void main(String[] args){
         merge(true);
     }

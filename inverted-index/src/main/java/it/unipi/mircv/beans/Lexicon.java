@@ -95,7 +95,11 @@ public class Lexicon extends HashMap<String,TermInfo> {
                     lexiconFile.readDouble(), //idf
                     lexiconFile.readInt(),  //Length in bytes of the docids list
                     lexiconFile.readInt(),  //Length in bytes of the frequencies list
-                    lexiconFile.readInt()); //Length of the term's posting list
+                    lexiconFile.readInt(),  //Length of the term's posting list
+                    lexiconFile.readLong(), //Offset of the skipBlocks in the skipBlocks file
+                    lexiconFile.readInt()  //Number of skipBlocks
+            );
+
 
             return termInfo;
 

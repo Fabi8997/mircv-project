@@ -1,5 +1,9 @@
 package it.unipi.mircv.compressor;
+import it.unipi.mircv.beans.SkipBlock;
+
 import java.util.ArrayList;
+import java.util.Iterator;
+
 import static it.unipi.mircv.utils.Utils.splitsLog128;
 
 /**
@@ -50,18 +54,52 @@ public class Compressor {
      * @param numbers Numbers to be compressed.
      * @return Array of bytes containing the compressed numbers.
      */
-    public static byte[] variableByteEncodeLong(ArrayList<Long> numbers){
+    public static byte[] variableByteEncodeDocId(ArrayList<Long> numbers, ArrayList<SkipBlock> skipBlocks){
+
+        //Dimension of each skip block
+        int skipBlocksLength = (int) Math.floor(Math.sqrt(numbers.size()));
 
         //Array to hold the bytes of the encoded numbers
         ArrayList<Byte> bytes = new ArrayList<>();
 
+        //Counter for the number traversed currently, used to know if the cursor is in the position of a skip
+        int counter = 0;
+
+        //Accumulator to keep track of the starting byte of the current skip block (relative to its posting list offset)
+        int offsetSkipBlocks = 0;
+
+        //Accumulator to store the length of the current skip block
+        int numberOfBytes = 0;
+
         //For each number in the list
         for (Long number : numbers) {
+
+            //Increase the counter for the number of numbers processed
+            counter++;
 
             //Encode each number and add it to the end of the array
             for(byte b : variableByteEncodeNumber(number)){
                 bytes.add(b);
+
+                //Increment the skip blocks length in bytes
+                numberOfBytes++;
             }
+
+            //If we're at a skip position, we create a new skip block
+            if(counter%skipBlocksLength == 0 || counter == numbers.size()){
+
+                //We pass the current starting offset, the length of the encoded block and the current number that is
+                // for sure the greater seen until now
+                skipBlocks.add(new SkipBlock(offsetSkipBlocks,numberOfBytes, number));
+
+                //Set the starting offset for the next skip block
+                offsetSkipBlocks += numberOfBytes;
+
+                //Reset the variables for the next iteration
+                numberOfBytes = 0;
+
+            }
+
         }
 
         //Array used to convert the arrayList into a byte array
@@ -76,17 +114,56 @@ public class Compressor {
         return result;
     }
 
-    public static byte[] variableByteEncodeInt(ArrayList<Integer> numbers){
+
+
+    public static byte[] variableByteEncodeFreq(ArrayList<Integer> numbers, ArrayList<SkipBlock> skipBlocks){
+
+        //Dimension of each skip block
+        int skipBlocksLength = (int) Math.floor(Math.sqrt(numbers.size()));
 
         //Array to hold the bytes of the encoded numbers
         ArrayList<Byte> bytes = new ArrayList<>();
 
+        //Counter for the number traversed currently, used to know if the cursor is in the position of a skip
+        int counter = 0;
+
+        //Accumulator to keep track of the starting byte of the current skip block (relative to its posting list offset)
+        int offsetSkipBlocks = 0;
+
+        //Accumulator to store the length of the current skip block
+        int numberOfBytes = 0;
+
+        Iterator<SkipBlock> skipBlocksIterator = skipBlocks.iterator();
+
         //For each number in the list
         for (Integer number : numbers) {
+
+            //Increase the counter for the number of numbers processed
+            counter++;
 
             //Encode each number and add it to the end of the array
             for(byte b : variableByteEncodeNumber(number)){
                 bytes.add(b);
+
+                //Increment the skip blocks length in bytes
+                numberOfBytes++;
+            }
+
+            //If we're at a skip position, then we complete the information about the skip previously created
+            if(counter%skipBlocksLength == 0 || counter == numbers.size()){
+
+                //We pass the current starting offset and the current number that is for sure the greater seen until now
+                if(skipBlocksIterator.hasNext()){
+
+                    //Set the starting offset of the skip block and the length of the encoded frequencies
+                    skipBlocksIterator.next().setFreqInfo(offsetSkipBlocks, numberOfBytes);
+                }
+                //Set the starting offset for the next skip block
+                offsetSkipBlocks += numberOfBytes;
+
+                //Reset the variables for the next iteration
+                numberOfBytes = 0;
+
             }
         }
 
@@ -176,17 +253,37 @@ public class Compressor {
     }
 
     public static void main(String[] args) {
-        ArrayList<Long> longs = new ArrayList<>();
-        longs.add(824L);
-        longs.add(5L);
-        longs.add(8000000L);
-        longs.add(0L);
-        longs.add(128L);
-        byte[] b = variableByteEncodeLong(longs);
-        for (byte value : b) {
-            System.out.println(String.format("%8s", Integer.toBinaryString(value & 0xFF)).replace(' ', '0'));
+
+        ArrayList<Long> numbers = new ArrayList<>();
+        numbers.add(10L); numbers.add(20L); numbers.add(30L); numbers.add(44L); numbers.add(51L); numbers.add(68L);
+        numbers.add(79L); numbers.add(813L); numbers.add(995L); numbers.add(1030L); numbers.add(11200L);
+
+        ArrayList<SkipBlock> skipBlocks = new ArrayList<SkipBlock>();
+
+        for(SkipBlock sb : skipBlocks){
+            System.out.println(sb);
         }
 
-        System.out.println(variableByteDecode(b));
+        /*variableByteEncodeDocId(numbers, skipBlocks);
+
+        for(SkipBlock sb : skipBlocks){
+            System.out.println(sb);
+        }
+
+        ArrayList<Integer> freq = new ArrayList<Integer>();
+        for(int i = 0; i < numbers.size(); i++){
+            freq.add(i);
+        }
+
+        System.out.println("Adding freq information\n\n");
+
+        variableByteEncodeFreq(freq, skipBlocks);
+
+        for(SkipBlock sb : skipBlocks){
+            System.out.println(sb);
+        }*/
+
     }
+
+
 }

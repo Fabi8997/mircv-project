@@ -18,8 +18,13 @@ public class App
     static HashMap<String, ArrayList<Posting>> invertedIndex = new HashMap<>();
 
     public static void main( String[] args ) throws IOException {
-        createBlocks();
 
+        ArrayList<Long> list = new ArrayList<>();
+
+
+
+        //createBlocks();
+        
         //merge();
 
         /*Lexicon lexicon = new Lexicon();
@@ -39,7 +44,6 @@ public class App
         System.out.println(documentIndex.size());
         System.out.println(documentIndex.get(1L));*/
     }
-
 
     private static void createBlocks(){
         InvertedIndexBuilder invertedIndexBuilder = new InvertedIndexBuilder();
