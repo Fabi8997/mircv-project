@@ -79,20 +79,10 @@ public class Score {
                     score += tf_tfidf*postingLists[index].getTermInfo().getIdf();
                 }
 
-                //Move the cursor to the next posting, if there is one, otherwise set the flag of the posting list to
+                //Move the cursor to the next posting, if there is one, otherwise the flag of the posting list is set to
                 // true, in this way we mark the end of the posting list
-                if(postingLists[index].hasNext()){
+                postingLists[index].next();
 
-                    //Move the cursor to the next posting
-                    postingLists[index].next();
-                }else {
-
-                    //Debug
-                    //System.out.println("no more postings");
-
-                    //Set the noMorePostings flag of the posting list to true
-                    postingLists[index].setNoMorePostings();
-                }
             }
 
             //Debug

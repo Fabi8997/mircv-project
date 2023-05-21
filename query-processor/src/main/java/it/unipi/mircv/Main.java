@@ -79,11 +79,22 @@ public class Main
                     postingLists[i] = new PostingList();
 
                     //Load in memory the posting list of the i-th query term
-                    postingLists[i].openList(lexicon.get(queryTerms[i]), queryType);
+                    postingLists[i].openList(lexicon.get(queryTerms[i]));
 
                     //Debug
                     //System.out.println(queryTerms[i] + ": " + postingLists[i].size());
                 }
+
+                // TODO: 19/05/2023 Test for term upper bound
+                /*PostingList ps = postingLists[0];
+                System.out.println("TFIDF upper bound for " +
+                        ps.getTermInfo().getTerm() +
+                        ": " +
+                        Score.scoreCollectionDisjunctive(new PostingList[]{ps}, documentIndex, false));
+                System.out.println("BM25 upper bound for " +
+                        ps.getTermInfo().getTerm() +
+                        ": " +
+                        Score.scoreCollectionDisjunctive(new PostingList[]{ps}, documentIndex, false));*/
 
                 ArrayList<Tuple<Long, Double>> result;
 
@@ -95,13 +106,20 @@ public class Main
                 }
 
                 //Print the results in a formatted way
-                System.out.println("\n#\tDOCID\t\tSCORE");
+                System.out.println("\n#\tDOCNO\t\tSCORE");
                 for(int i = 0; i < result.size(); i++){
-                    System.out.println((i+1) + ")\t" + result.get(i).getFirst() +"\t"+result.get(i).getSecond());
+                    System.out.println((i+1) +
+                            ")\t" +
+                            documentIndex.get(result.get(i).getFirst()).getDocNo() +
+                            "\t"+result.get(i).getSecond());
                 }
+
                 System.out.println();
 
-                // TODO: 18/04/2023 Retrieve document given the docid
+                //Close the posting lists
+                for (PostingList postingList : postingLists) {
+                    postingList.closeList();
+                }
 
             } else if(command == 1) { //Change settings command
 
