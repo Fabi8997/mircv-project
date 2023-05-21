@@ -26,9 +26,11 @@ public class Score {
      */
     public static ArrayList<Tuple<Long,Double>> scoreCollectionDisjunctive(PostingList[] postingLists, DocumentIndex documentIndex, boolean BM25) {
 
-        //Priority queue to store the document id and its score, based on the priority of the document
-        PriorityQueue<Tuple<Long,Double>> rankedDocs = new PriorityQueue<>((o1, o2) -> o2.getSecond().compareTo(o1.getSecond()));
+        RankedDocs rankedDocs = new RankedDocs(BEST_K_VALUE);
+        ArrayList<Integer> nonEssential = new ArrayList<>();
+        ArrayList<Integer> essential = new ArrayList<>();
 
+        ArrayList<PostingList> orderedPostingLists = new ArrayList<>();
         //Retrieve the time at the beginning of the computation
         long begin = System.currentTimeMillis();
 
@@ -36,7 +38,20 @@ public class Score {
         for (PostingList postingList : postingLists) {
             if (postingList.hasNext()) {
                 postingList.next();
+                orderedPostingLists.add(postingList);
+                //essential.add(postingList.getTermInfo());
             }
+        }
+
+        if(BM25) {
+            orderedPostingLists.sort((o1, o2) -> Integer.compare(o2.getTermInfo().getBm25TermUpperBound(), o1.getTermInfo().getBm25TermUpperBound()));
+        }
+        else{
+            orderedPostingLists.sort((o1, o2) -> Integer.compare(o2.getTermInfo().getTfidfTermUpperBound(), o1.getTermInfo().getTfidfTermUpperBound()));
+        }
+        
+        for(int i = 0; i < orderedPostingLists.size(); i++){
+            essential.add(i);
         }
 
         //Tuple to store the current minimum document id and the list of posting lists containing it
@@ -63,7 +78,7 @@ public class Score {
 
                 //If the scoring is BM25
                 if(BM25){
-
+                    // TODO: 21/05/2023 implement maxScore for BM25 
                     //Compute the BM25's tf for the current posting
                     tf_BM25 = postingLists[index].getFreq()/ (K1 * ((1-B) + B * ( (double)documentIndex.get(postingLists[index].getDocId()).getDocLength() / statistics.getAvdl()) + postingLists[index].getFreq()));
 
@@ -71,7 +86,7 @@ public class Score {
                     score += tf_BM25*postingLists[index].getTermInfo().getIdf();
 
                 }else {
-
+                    // TODO: 21/05/2023 implement maxScore for tfIdf 
                     //Compute the TFIDF'S tf for the current posting
                     tf_tfidf = 1 + Math.log(postingLists[index].getFreq()) / Math.log(2);
 
@@ -94,7 +109,10 @@ public class Score {
 
 
             //Add the score of the current document to the priority queue
-            rankedDocs.add(new Tuple<>(minDocidTuple.getFirst(), score));
+            if(score > rankedDocs.getThreshold()){
+                rankedDocs.add(new Tuple<>(minDocidTuple.getFirst(), score));
+                // TODO: 21/05/2023 finish essential and non essential lists 
+            }
 
             //Clear the support variables for the next iteration
             score = 0;
