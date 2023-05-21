@@ -50,6 +50,9 @@ public class PostingList extends ArrayList<Posting> {
     //Used to store the starting configuration
     private Configuration configuration;
 
+    //Flag to see if the skip block is changed
+    private boolean skipBlockChanged;
+
     //Random access file used to read the docids
     RandomAccessFile randomAccessFileDocIds;
 
@@ -66,73 +69,17 @@ public class PostingList extends ArrayList<Posting> {
     public PostingList() {
         super();
         noMorePostings = false;
+        skipBlockChanged = false;
     }
 
-    /**
-     * This method is used to call the correct open list method, if the query type is true, then we open the list
-     * based on the data structure used in case of disjunctive queries, while if it false, then the list is opened
-     * in a way that contains the data structures for this case (like skipBlocks).
-     * @param termInfo term of which we want to open the posting list
-     * @param queryType query type: true for disjunctive queries, false for conjunctive queries
-     */
-    public void openList(TermInfo termInfo, boolean queryType) {
-        if(queryType){
-            openListDisjunctive(termInfo);
-        } else{
-            openListConjunctive(termInfo);
-        }
-    }
-
-    /**
-     * Loads the posting list of the given term in memory, here the skipping is not needed.
-     * @param termInfo Lexicon entry of the term, used to retrieve the offsets and the lengths of the posting list
-     */
-    private void openListDisjunctive(TermInfo termInfo){
-
-        this.termInfo = termInfo;
-
-        configuration = new Configuration();
-        configuration.loadConfiguration();
-
-        //Open the stream with the posting list files
-        try(    RandomAccessFile randomAccessFileDocIds = new RandomAccessFile(DOCIDS_PATH, "r");
-                RandomAccessFile randomAccessFileFrequencies = new RandomAccessFile(FREQUENCIES_PATH, "r")
-                ){
-
-            //Retrieve the docids and the frequencies
-            ArrayList<Long> docids;
-            ArrayList<Integer> frequencies;
-
-            //If the compression is enabled, then read the posting lists files with the compression
-            if(configuration.getCompressed()) {
-
-                docids = readPostingListDocIdsCompressed(randomAccessFileDocIds, termInfo.getOffsetDocId(), termInfo.getDocIdsBytesLength());
-                frequencies = readPostingListFrequenciesCompressed(randomAccessFileFrequencies, termInfo.getOffsetFrequency(), termInfo.getFrequenciesBytesLength());
-            }else {//Read without compression
-
-                docids = readPostingListDocIds(randomAccessFileDocIds,termInfo.getOffsetDocId(),termInfo.getDocIdsBytesLength());
-                frequencies = readPostingListFrequencies(randomAccessFileFrequencies, termInfo.getOffsetFrequency(), termInfo.getFrequenciesBytesLength());
-            }
-
-            //Create the array list of postings
-            for(int i = 0; i < termInfo.getPostingListLength(); i++){
-                this.add(new Posting(docids.get(i), frequencies.get(i)));
-            }
-        }catch (IOException e){
-            System.err.println("[OpenList] Exception during opening posting list");
-            throw new RuntimeException(e);
-        }
-
-        iterator = this.iterator();
-    }
 
     /**
      * Loads the posting list of the given term in memory, this list uses the skipping mechanism.
      * @param termInfo Lexicon entry of the term, used to retrieve the offsets and the lengths of the posting list
      */
-    private void openListConjunctive(TermInfo termInfo){
+    public void openList(TermInfo termInfo){
 
-        //Set the terminfo of the postign list
+        //Set the terminfo of the posting list
         this.termInfo = termInfo;
 
         //Load the configuration used to build the inverted index
@@ -213,6 +160,17 @@ public class PostingList extends ArrayList<Posting> {
      */
     public Posting next(){
 
+        if(this.docId == currentSkipBlock.maxDocid){
+            if(skipBlocksIterator.hasNext()){
+                nextSkipBlock();
+            }else {
+                setNoMorePostings();
+                return null;
+            }
+
+            loadPostingList();
+        }
+
         //Get the next posting in the iteration
         Posting result = iterator.next();
 
@@ -228,6 +186,7 @@ public class PostingList extends ArrayList<Posting> {
      * Move the skip blocks iterator to the next skip block and set the current skip block to it.
      */
     public void nextSkipBlock(){
+        skipBlockChanged = true;
         currentSkipBlock = skipBlocksIterator.next();
     }
 
@@ -245,13 +204,13 @@ public class PostingList extends ArrayList<Posting> {
         while(currentSkipBlock.maxDocid < searchedDocId){
 
             //Debug
-            System.out.println(currentSkipBlock.maxDocid +" < "+ searchedDocId);
+            //System.out.println(currentSkipBlock.maxDocid +" < "+ searchedDocId);
 
             //If it is possible to move to the next skip block, then move the iterator
             if(skipBlocksIterator.hasNext()){
 
                 //Debug
-                System.out.println("changing the skip block");
+                //System.out.println("changing the skip block");
 
                 //Move the iterator to the next skip block
                 nextSkipBlock();
@@ -261,7 +220,7 @@ public class PostingList extends ArrayList<Posting> {
                 // the one searched
 
                 //Debug
-                System.out.println("end of posting list");
+                //System.out.println("end of posting list");
 
                 //Set the end of posting list flag
                 setNoMorePostings();
@@ -272,7 +231,11 @@ public class PostingList extends ArrayList<Posting> {
 
         //load the posting lists related to the current skip block, once we've found a posting list portion
         // that can contain the searched doc id
-        loadPostingList();
+        if(skipBlockChanged){
+            skipBlockChanged = false;
+            loadPostingList();
+        }
+
 
         //Helper variable to hold the posting during the traversing of the posting list
         Posting posting;
@@ -287,7 +250,7 @@ public class PostingList extends ArrayList<Posting> {
             if(this.docId >= searchedDocId){
 
                 //Debug
-                System.out.println(this.docId + "stopped here");
+                //System.out.println(this.docId + "stopped here");
 
                 return posting;
             }
@@ -313,7 +276,7 @@ public class PostingList extends ArrayList<Posting> {
     /**
      * Clear the array list
      */
-    public void closeList(){ // TODO: 10/05/2023 Add to the end of the query processing for the term
+    public void closeList(){
         this.clear();
         try {
             randomAccessFileDocIds.close();
@@ -357,14 +320,6 @@ public class PostingList extends ArrayList<Posting> {
 
     public TermInfo getTermInfo() {
         return termInfo;
-    }
-
-    public SkipBlock getCurrentSkipBlock() {
-        return currentSkipBlock;
-    }
-
-    public Iterator<SkipBlock> getSkipBlocksIterator() {
-        return skipBlocksIterator;
     }
 
 
