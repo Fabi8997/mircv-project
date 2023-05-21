@@ -81,8 +81,7 @@ public class DocumentIndexEntry {
     public static int getDocLenFromDisk(RandomAccessFile documentIndexFile, long docId){
 
         //Accumulator for the current offset in the file
-        long offset = docId*DOCUMENT_INDEX_ENTRY_LENGTH+DOCID_LENGTH+DOCNO_LENGTH;
-
+        long offset = (docId - 1)*DOCUMENT_INDEX_ENTRY_LENGTH + DOCID_LENGTH + DOCNO_LENGTH;
 
         try {
             //Move to the correct offset
@@ -104,7 +103,6 @@ public class DocumentIndexEntry {
 
     public static void main(String[] args){
         try (RandomAccessFile documentIndexFile = new RandomAccessFile(DocumentIndex.DOCUMENT_INDEX_PATH, "r")) {
-            System.out.println(getDocLenFromDisk(documentIndexFile,0));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

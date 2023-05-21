@@ -237,10 +237,10 @@ public class IndexMerger {
                 double idf = Math.log(statistics.getNumberOfDocuments()/ (double)docIds.size())/Math.log(2);
 
                 //Compute the tfidf term upper bound
-                int tfidfTermUpperBound = (int) Math.floor((1 + Math.log(maxscoreTuple.getFirst()) / Math.log(2))*idf);
+                int tfidfTermUpperBound = (int) Math.ceil((1 + Math.log(maxscoreTuple.getFirst()) / Math.log(2))*idf);
 
                 //Compute the bm25 term upper bound
-                int bm25TermUpperBound = (int) Math.floor(maxscoreTuple.getSecond()*idf);
+                int bm25TermUpperBound = (int) Math.ceil(maxscoreTuple.getSecond()*idf);
 
 
                 lexiconEntry = new TermInfo(
@@ -339,10 +339,10 @@ public class IndexMerger {
                 double idf = Math.log(statistics.getNumberOfDocuments()/ (double)docIds.size())/Math.log(2);
 
                 //Compute the tfidf term upper bound
-                int tfidfTermUpperBound = (int) Math.floor((1 + Math.log(maxFreq) / Math.log(2))*idf);
+                int tfidfTermUpperBound = (int) Math.ceil((1 + Math.log(maxFreq) / Math.log(2))*idf);
 
                 //Compute the bm25 term upper bound
-                int bm25TermUpperBound = (int) Math.floor(tf_maxScoreBm25*idf);
+                int bm25TermUpperBound = (int) Math.ceil(tf_maxScoreBm25*idf);
 
 
                 //Instantiate a new TermInfo object with the current term information, here we use the information in

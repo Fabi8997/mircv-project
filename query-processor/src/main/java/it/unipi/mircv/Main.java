@@ -23,6 +23,7 @@ public class Main
         System.out.println("[QUERY PROCESSOR] Loading the lexicon in memory...");
         lexicon = new Lexicon();
         lexicon.loadLexicon();
+        System.out.println("First term: " + lexicon.get("cat").toString());
         System.out.println("[QUERY PROCESSOR] Lexicon size: " + lexicon.size());
 
         System.out.println("[QUERY PROCESSOR] Loading the document index in memory...");
@@ -84,20 +85,6 @@ public class Main
                     //Debug
                     //System.out.println(queryTerms[i] + ": " + postingLists[i].size());
                 }
-
-                // TODO: 19/05/2023 Test for term upper bound
-                PostingList ps = postingLists[0];
-                System.out.println("TFIDF upper bound for " +
-                        ps.getTermInfo().getTerm() +
-                        ": " +
-                        Score.scoreCollectionDisjunctive(new PostingList[]{ps}, documentIndex, false));
-                ps.resetIterator();
-
-                System.out.println("BM25 upper bound for " +
-                        ps.getTermInfo().getTerm() +
-                        ": " +
-                        Score.scoreCollectionDisjunctive(new PostingList[]{ps}, documentIndex, false));
-                ps.resetIterator();
 
                 ArrayList<Tuple<Long, Double>> result;
 
@@ -202,7 +189,7 @@ public class Main
      * one used during the indexing phase.
      * @param query the query string to parse
      * @param stopwordsRemovalAndStemming if true remove the stopwords and applies the stemming procedure.
-     * @return the list of terms after the parsing of the query
+     * @return the array of terms after the parsing of the query
      */
     private static String[] parseQuery(String query, boolean stopwordsRemovalAndStemming) {
 
