@@ -86,15 +86,18 @@ public class Main
                 }
 
                 // TODO: 19/05/2023 Test for term upper bound
-                /*PostingList ps = postingLists[0];
+                PostingList ps = postingLists[0];
                 System.out.println("TFIDF upper bound for " +
                         ps.getTermInfo().getTerm() +
                         ": " +
                         Score.scoreCollectionDisjunctive(new PostingList[]{ps}, documentIndex, false));
+                ps.resetIterator();
+
                 System.out.println("BM25 upper bound for " +
                         ps.getTermInfo().getTerm() +
                         ": " +
-                        Score.scoreCollectionDisjunctive(new PostingList[]{ps}, documentIndex, false));*/
+                        Score.scoreCollectionDisjunctive(new PostingList[]{ps}, documentIndex, false));
+                ps.resetIterator();
 
                 ArrayList<Tuple<Long, Double>> result;
 

@@ -1,9 +1,6 @@
 package it.unipi.mircv.merger;
 
-import it.unipi.mircv.beans.PostingList;
-import it.unipi.mircv.beans.SkipBlock;
-import it.unipi.mircv.beans.Statistics;
-import it.unipi.mircv.beans.TermInfo;
+import it.unipi.mircv.beans.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -24,6 +21,8 @@ public class IndexMerger {
     final static String INVERTED_INDEX_DOC_IDS_PATH = "Files/docids.txt";
     final static String INVERTED_INDEX_FREQUENCIES_PATH = "Files/frequencies.txt";
     final static String SKIP_BLOCKS_PATH = "Files/skipblocks.txt";
+    public static final double K1 = 1.5;
+    public static final double B = 0.75;
 
     /**
      * This method merges the inverted index and the lexicon blocks into one single file.
@@ -52,6 +51,7 @@ public class IndexMerger {
         RandomAccessFile docIdsFile;
         RandomAccessFile frequenciesFile;
         RandomAccessFile skipBlocksFile;
+        RandomAccessFile documentIndex;
 
         //Accumulators to hold the current offset, starting from which the next list of postings will be written
         long docIdsOffset = 0;
@@ -109,6 +109,7 @@ public class IndexMerger {
             docIdsFile = new RandomAccessFile(INVERTED_INDEX_DOC_IDS_PATH, "rw");
             frequenciesFile = new RandomAccessFile(INVERTED_INDEX_FREQUENCIES_PATH, "rw");
             skipBlocksFile = new RandomAccessFile(SKIP_BLOCKS_PATH, "rw");
+            documentIndex = new RandomAccessFile(DocumentIndex.DOCUMENT_INDEX_PATH, "r");
 
 
         } catch (FileNotFoundException e) {
@@ -207,15 +208,21 @@ public class IndexMerger {
 
             }
 
+            //Maximum term frequency
+            int maxFreq = 0;
 
+            //Maximum tf for bm25
+            double tf_maxScoreBm25 = 0;
 
             if(compress){
+
+                Tuple<Double, Double> maxscoreTuple = new Tuple<>(0.0, 0.0);
 
                 //Compress the list of docIds using VBE and create the list of skip blocks for the list of docids
                 docIdsCompressed = variableByteEncodeDocId(docIds, skipBlocks);
 
                 //Compress the list of frequencies using VBE and update the frequencies information in the skip blocks
-                frequenciesCompressed = variableByteEncodeFreq(frequencies, skipBlocks);
+                frequenciesCompressed = variableByteEncodeFreq(frequencies, skipBlocks, docIds, maxscoreTuple, documentIndex, statistics);
 
                 //Write the docIds and frequencies of the current term in the respective files
                 try {
@@ -229,6 +236,13 @@ public class IndexMerger {
                 //Compute idf
                 double idf = Math.log(statistics.getNumberOfDocuments()/ (double)docIds.size())/Math.log(2);
 
+                //Compute the tfidf term upper bound
+                int tfidfTermUpperBound = (int) Math.floor((1 + Math.log(maxscoreTuple.getFirst()) / Math.log(2))*idf);
+
+                //Compute the bm25 term upper bound
+                int bm25TermUpperBound = (int) Math.floor(maxscoreTuple.getSecond()*idf);
+
+
                 lexiconEntry = new TermInfo(
                         minTerm,                     //Term
                         docIdsOffset,                //offset in the docids file in which the docids list starts
@@ -238,7 +252,9 @@ public class IndexMerger {
                         frequenciesCompressed.length,//length in bytes of the compressed frequencies list
                         docIds.size(),               //Length of the posting list of the current term
                         skipBlocksOffset,            //Offset of the SkipBlocks in the SkipBlocks file
-                        skipBlocks.size()            //number of SkipBlocks
+                        skipBlocks.size(),           //number of SkipBlocks
+                        tfidfTermUpperBound,         //term upper bound for the tfidf
+                        bm25TermUpperBound           //term upper bound for the bm25
                         );
 
                 //For DEBUG
@@ -263,8 +279,24 @@ public class IndexMerger {
                     //Number of postings
                     int skipBlocksElements = 0;
 
+                    //To store the bm25 score for the current doc id
+                    double tf_currentBm25;
+
                     //Write the docids and frequencies in their respective files and create the skip blocks
                     for(int i=0; i < docIds.size(); i++) {
+
+                        //Retrieve the maximum to compute the TFIDF term upper bound
+                        if(frequencies.get(i) > maxFreq){
+                            maxFreq = frequencies.get(i);
+                        }
+
+                        //Compute the bm25 scoring for the current document
+                        tf_currentBm25 = frequencies.get(i)/ (K1 * ((1-B) + B * ( (double) DocumentIndexEntry.getDocLenFromDisk(documentIndex, docIds.get(i)) / statistics.getAvdl()) + frequencies.get(i)));
+
+                        if(tf_currentBm25 > tf_maxScoreBm25){
+                            tf_maxScoreBm25 = tf_currentBm25;
+                        }
+
 
                         //Write the docIds as a long to the end of the docIds file
                         docIdsFile.writeLong(docIds.get(i));
@@ -303,7 +335,15 @@ public class IndexMerger {
                     throw new RuntimeException(e);
                 }
 
+                //Compute idf
                 double idf = Math.log(statistics.getNumberOfDocuments()/ (double)docIds.size())/Math.log(2);
+
+                //Compute the tfidf term upper bound
+                int tfidfTermUpperBound = (int) Math.floor((1 + Math.log(maxFreq) / Math.log(2))*idf);
+
+                //Compute the bm25 term upper bound
+                int bm25TermUpperBound = (int) Math.floor(tf_maxScoreBm25*idf);
+
 
                 //Instantiate a new TermInfo object with the current term information, here we use the information in
                 //the docids and frequencies objects
@@ -311,16 +351,16 @@ public class IndexMerger {
                         minTerm,                     //Term
                         docIdsOffset,                //offset in the docids file in which the docids list starts
                         frequenciesOffset,           //offset in the frequencies file in which the frequencies list starts
-                        idf,
+                        idf,                         //idf of the term for future scoring
                         docIds.size(),               //length in number of long in the docids list
                         frequencies.size(),          //length number of integers in the frequencies list
                         docIds.size(),               //Length of the posting list of the current term
                         skipBlocksOffset,            //Offset of the SkipBlocks in the SkipBlocks file
-                        skipBlocks.size()            //number of SkipBlocks
+                        skipBlocks.size(),           //number of SkipBlocks
+                        tfidfTermUpperBound,         //term upper bound for the tfidf
+                        bm25TermUpperBound           //term upper bound for the bm25
                 );
 
-                //terminfo.setTFIDF()
-                //terminfo.setBM25()
                 lexiconEntry.writeToFile(lexiconFile, lexiconEntry);
 
                 docIdsOffset += 8L*docIds.size();

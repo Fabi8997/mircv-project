@@ -238,6 +238,10 @@ public class Indexer {
         return Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory() < threshold;
     }
 
+    // TODO: 21/05/2023  
+    private void clearFiles(){
+        
+    }
     /*For debug
     private static long getMemoryUsed(){
         Runtime rt = Runtime.getRuntime();

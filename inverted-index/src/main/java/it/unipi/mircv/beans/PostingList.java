@@ -288,6 +288,13 @@ public class PostingList extends ArrayList<Posting> {
     }
 
     /**
+     * Reset the iterator to the beginning of the posting list
+     */
+    public void resetIterator(){
+        iterator = this.iterator();
+    }
+
+    /**
      * Get the current docid.
      * @return the current docid.
      */

@@ -5,7 +5,6 @@ import it.unipi.mircv.utils.Utils;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
-
 /**
  * Class that represents an entry of the document index, it contains the docno and the document length. The class
  * contains methods to write the document index into a random access file.
@@ -73,8 +72,42 @@ public class DocumentIndexEntry {
         }
     }
 
+    /**
+     * Read from the document index the document index entry related to the given doc id
+     * @param documentIndexFile random access file containing the document index
+     * @param docId document id of which we want to retrieve the entry
+     * @return the document index entry associated to the doc id
+     */
+    public static int getDocLenFromDisk(RandomAccessFile documentIndexFile, long docId){
+
+        //Accumulator for the current offset in the file
+        long offset = docId*DOCUMENT_INDEX_ENTRY_LENGTH+DOCID_LENGTH+DOCNO_LENGTH;
+
+
+        try {
+            //Move to the correct offset
+            documentIndexFile.seek(offset);
+
+            //Read the length of the document, 4 bytes starting from the offset
+            return documentIndexFile.readInt();
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
     @Override
     public String toString() {
         return "[ "+ docNo + ", " + docLength + ']';
     }
+
+    public static void main(String[] args){
+        try (RandomAccessFile documentIndexFile = new RandomAccessFile(DocumentIndex.DOCUMENT_INDEX_PATH, "r")) {
+            System.out.println(getDocLenFromDisk(documentIndexFile,0));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }

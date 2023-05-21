@@ -97,7 +97,9 @@ public class Lexicon extends HashMap<String,TermInfo> {
                     lexiconFile.readInt(),  //Length in bytes of the frequencies list
                     lexiconFile.readInt(),  //Length of the term's posting list
                     lexiconFile.readLong(), //Offset of the skipBlocks in the skipBlocks file
-                    lexiconFile.readInt()  //Number of skipBlocks
+                    lexiconFile.readInt(),  //Number of skipBlocks
+                    lexiconFile.readInt(), //TFIDF term upper bound
+                    lexiconFile.readInt()  //BM25 term lower bound
             );
 
 
