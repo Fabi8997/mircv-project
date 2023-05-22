@@ -223,16 +223,17 @@ public class Score {
         //Access each posting list in a Document-At-a-Time fashion until no more postings are available
         while (!aPostingListEnded(postingLists)) {
 
-            //Retrieve the minimum document id and the list of posting lists containing it
+            //Retrieve the maximum document id and the list of posting lists containing it
             maxDocid = maxDocid(postingLists);
-
+            // TODO: 22/05/2023 controllare perche il programma si blocca nella score conjunctive 
             //Perform the nextGEQ operation for each posting list
             for(PostingList postingList : postingLists){
 
                 //If we reach the end of the posting list then we break the for, the conjunctive query is ended
                 // and all the next conditions are not satisfied
                 if(postingList.nextGEQ(maxDocid) == null || postingList.noMorePostings())
-                   break;
+                    break;
+
             }
 
             //If the current doc id is equal in all the posting lists

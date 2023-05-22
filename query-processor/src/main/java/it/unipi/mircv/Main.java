@@ -23,7 +23,6 @@ public class Main
         System.out.println("[QUERY PROCESSOR] Loading the lexicon in memory...");
         lexicon = new Lexicon();
         lexicon.loadLexicon();
-        System.out.println("First term: " + lexicon.get("cat").toString());
         System.out.println("[QUERY PROCESSOR] Lexicon size: " + lexicon.size());
 
         System.out.println("[QUERY PROCESSOR] Loading the document index in memory...");

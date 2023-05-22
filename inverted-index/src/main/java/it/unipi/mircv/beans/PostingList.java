@@ -159,11 +159,13 @@ public class PostingList extends ArrayList<Posting> {
      * @return the next posting
      */
     public Posting next(){
-
+        //System.out.println("This.docID: " + this.docId + "/" + currentSkipBlock.maxDocid);
         if(this.docId == currentSkipBlock.maxDocid){
+            //System.out.println("Last docId of the block");
             if(skipBlocksIterator.hasNext()){
                 nextSkipBlock();
             }else {
+                //System.out.println("Posting list ended");
                 setNoMorePostings();
                 return null;
             }
@@ -204,13 +206,13 @@ public class PostingList extends ArrayList<Posting> {
         while(currentSkipBlock.maxDocid < searchedDocId){
 
             //Debug
-            //System.out.println(currentSkipBlock.maxDocid +" < "+ searchedDocId);
+            System.out.println(currentSkipBlock.maxDocid +" < "+ searchedDocId);
 
             //If it is possible to move to the next skip block, then move the iterator
             if(skipBlocksIterator.hasNext()){
 
                 //Debug
-                //System.out.println("changing the skip block");
+                System.out.println("changing the skip block");
 
                 //Move the iterator to the next skip block
                 nextSkipBlock();
@@ -220,7 +222,7 @@ public class PostingList extends ArrayList<Posting> {
                 // the one searched
 
                 //Debug
-                //System.out.println("end of posting list");
+                System.out.println("end of posting list");
 
                 //Set the end of posting list flag
                 setNoMorePostings();
@@ -257,6 +259,9 @@ public class PostingList extends ArrayList<Posting> {
         }
 
         //No postings are GEQ in the current posting list, we've finished the traversing the whole posting list
+        if(!skipBlocksIterator.hasNext())
+            setNoMorePostings();
+
         return null;
     }
 
