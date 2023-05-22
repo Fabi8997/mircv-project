@@ -15,12 +15,12 @@ public class RankedDocs extends PriorityQueue<Tuple<Long, Double>> {
     @Override
     public boolean add(Tuple<Long, Double> longDoubleTuple) {
         boolean result = super.add(longDoubleTuple);
-        if(result && this.size() > K){
+        if(result && this.size() >= K){
             for(int i = 0; i < K - 1; i++){
                 this.peek();
             }
             assert this.peek() != null;
-            threshold = this.peek().getSecond();
+            this.threshold = this.peek().getSecond();
         }
         return result;
     }
