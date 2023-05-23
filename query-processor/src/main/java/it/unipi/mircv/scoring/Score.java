@@ -48,13 +48,16 @@ public class Score {
             orderedPostingLists.sort(Comparator.comparingInt(o -> o.getTermInfo().getBm25TermUpperBound()));
         }
         else{
-            orderedPostingLists.sort(Comparator.comparingInt(o -> o.getTermInfo().getBm25TermUpperBound()));
+            orderedPostingLists.sort(Comparator.comparingInt(o -> o.getTermInfo().getTfidfTermUpperBound()));
         }
 
         for(int i = 0; i < orderedPostingLists.size(); i++){
             essential.add(i);
+            System.out.println(orderedPostingLists.get(i).getTermInfo().getTfidfTermUpperBound());
             postingLists[i] = orderedPostingLists.get(i);
+            System.out.println(postingLists[i].getTermInfo().getTfidfTermUpperBound());
         }
+
 
        //Tuple to store the current minimum document id and the list of posting lists containing it
         Tuple<Long,ArrayList<Integer>> minDocidTuple;
@@ -119,12 +122,21 @@ public class Score {
                     //Add the partial score to the accumulated score
                     score += tf_tfidf*postingLists[minDocidTuple.getSecond().get(index)].getTermInfo().getIdf();
 
+                    //if(postingLists[minDocidTuple.getSecond().get(index)].getDocId() == 59364){
+                    //    System.out.println("tf_tfidf: " + tf_tfidf);
+                    //    System.out.println("idf: " + postingLists[minDocidTuple.getSecond().get(index)].getTermInfo().getIdf());
+                    //    System.out.println("Score: " + score);
+                    //}
+
                     double newMaxScore = score;
                     for(int j = index + 1; j < minDocidTuple.getSecond().size(); j++){
                         newMaxScore += postingLists[minDocidTuple.getSecond().get(j)].getTermInfo().getTfidfTermUpperBound();
                     }
 
                     if(newMaxScore < rankedDocs.getThreshold()){
+                        //if(postingLists[minDocidTuple.getSecond().get(index)].getDocId() == 59364) {
+                        //    System.out.println("New Max Score < rankedDocs.getThreshold: " + newMaxScore + "<" + rankedDocs.getThreshold());
+                        //}
                         for(int j = index; j < minDocidTuple.getSecond().size(); j++){
                             postingLists[minDocidTuple.getSecond().get(j)].next();
                         }
@@ -200,7 +212,7 @@ public class Score {
     public static ArrayList<Tuple<Long,Double>> scoreCollectionConjunctive(PostingList[] postingLists, DocumentIndex documentIndex, boolean BM25) {
 
         //Priority queue to store the document id and its score, based on the priority of the document
-        PriorityQueue<Tuple<Long,Double>> rankedDocs = new PriorityQueue<>((o1, o2) -> o2.getSecond().compareTo(o1.getSecond()));
+        RankedDocs rankedDocs = new RankedDocs(BEST_K_VALUE);
 
         //Retrieve the time at the beginning of the computation
         long begin = System.currentTimeMillis();
@@ -208,7 +220,7 @@ public class Score {
         //Move the iterators of each posting list to the first position
         for (PostingList postingList : postingLists) {
             if (postingList.hasNext()) {
-                System.out.println(postingList.next());
+                System.out.println(postingList.next() + " -> DOCID: " + postingList.getDocId());
             }
         }
 
@@ -222,32 +234,28 @@ public class Score {
 
         //Access each posting list in a Document-At-a-Time fashion until no more postings are available
         while (!aPostingListEnded(postingLists)) {
-
             //Retrieve the maximum document id and the list of posting lists containing it
             maxDocid = maxDocid(postingLists);
             // TODO: 22/05/2023 controllare perche il programma si blocca nella score conjunctive 
             //Perform the nextGEQ operation for each posting list
-            for(PostingList postingList : postingLists){
-
+            System.out.println("--------------------------------");
+            System.out.println("Searched DocId: " + maxDocid);
+            for (PostingList postingList : postingLists) {
                 //If we reach the end of the posting list then we break the for, the conjunctive query is ended
                 // and all the next conditions are not satisfied
-                if(postingList.nextGEQ(maxDocid) == null || postingList.noMorePostings())
-                    break;
-
+                postingList.nextGEQ(maxDocid);
+            }
+            if (aPostingListEnded(postingLists)) {
+                break;
             }
 
             //If the current doc id is equal in all the posting lists
-            if(areAllEqual(postingLists)){
-
-                //Debug
-                System.out.println("--------------------------------");
-
+            if (areAllEqual(postingLists)) {
                 //Score the document
-                for(PostingList postingList : postingLists) {
+                for (PostingList postingList : postingLists) {
 
                     //Debug
                     System.out.println(postingList.getDocId());
-
                     //If the scoring is BM25
                     if (BM25) {
 
@@ -264,24 +272,18 @@ public class Score {
 
                         //Add the partial score to the accumulated score
                         score += tf_tfidf * postingList.getTermInfo().getIdf();
-                    }
 
+                        //if(postingList.getDocId() == 7146){
+                        //    System.out.println("tf_tfidf: " + tf_tfidf);
+                        //    System.out.println("idf: " + postingList.getTermInfo().getIdf());
+                        //}
+                    }
                     //Move the cursor to the next posting (this must be done even if the document is not scored), if there
                     // is one, otherwise set the flag of the posting list to true, in this way we mark the end of the
                     // posting list
-                    if(postingList.hasNext()){
 
-                        //Move the cursor to the next posting
-                        postingList.next();
-                    }else {
-
-                        //Debug
-                        System.out.println("no more postings");
-
-                        //Set the noMorePostings flag of the posting list to true
-                        postingList.setNoMorePostings();
-                    }
-
+                    //Move the cursor to the next posting
+                    postingList.next();
                 }
 
                 //Debug
@@ -292,15 +294,13 @@ public class Score {
                 //Add the score of the current document to the priority queue
                 rankedDocs.add(new Tuple<>(maxDocid, score));
             }
-            
-            //Clear the support variables for the next iteration
+            //clear the support variables for the next iteration
             score = 0;
         }
-
-        //Print the time used to score the documents, so to generate an answer for the query
+        //print the time used to score the documents, so to generate an answer for the query
         System.out.println("[SCORE DOCUMENT] Total scoring time: " + (System.currentTimeMillis() - begin) + "ms");
 
-        //Return the top k documents
+        //return the top K documents
         return getBestKDocuments(rankedDocs, BEST_K_VALUE);
     }
 
@@ -312,6 +312,8 @@ public class Score {
     private static boolean areAllEqual(PostingList[] postingLists){
 
         long docid = -1;
+        if(postingLists.length == 1)
+            return true;
 
         //Traverse all the posting lists if two different docids are found, then return false
         for(PostingList postingList : postingLists){
@@ -466,6 +468,9 @@ public class Score {
 
         //Traverse the array of posting list and find the maximum document id among the current doc ids
         for(PostingList postingList : postingLists){
+            if(postingList.getDocId() == 10588){
+                System.out.println("10588 found");
+            }
             if(postingList.getDocId() > max){
                 max = postingList.getDocId();
             }

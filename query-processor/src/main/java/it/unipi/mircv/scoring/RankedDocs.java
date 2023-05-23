@@ -1,6 +1,8 @@
 package it.unipi.mircv.scoring;
 
 import it.unipi.mircv.beans.Tuple;
+
+import java.util.Iterator;
 import java.util.PriorityQueue;
 
 public class RankedDocs extends PriorityQueue<Tuple<Long, Double>> {
@@ -16,11 +18,18 @@ public class RankedDocs extends PriorityQueue<Tuple<Long, Double>> {
     public boolean add(Tuple<Long, Double> longDoubleTuple) {
         boolean result = super.add(longDoubleTuple);
         if(result && this.size() >= K){
-            for(int i = 0; i < K - 1; i++){
-                this.peek();
+            Iterator<Tuple<Long, Double>> iterator = iterator();
+            int counter = 0;
+            while(iterator.hasNext()){
+                iterator.next();
+                counter++;
+                if(counter == K - 1){
+                    break;
+                }
             }
-            assert this.peek() != null;
-            this.threshold = this.peek().getSecond();
+
+            this.threshold = iterator.next().getSecond();
+
         }
         return result;
     }

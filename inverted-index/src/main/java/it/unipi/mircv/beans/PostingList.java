@@ -50,9 +50,6 @@ public class PostingList extends ArrayList<Posting> {
     //Used to store the starting configuration
     private Configuration configuration;
 
-    //Flag to see if the skip block is changed
-    private boolean skipBlockChanged;
-
     //Random access file used to read the docids
     RandomAccessFile randomAccessFileDocIds;
 
@@ -69,7 +66,6 @@ public class PostingList extends ArrayList<Posting> {
     public PostingList() {
         super();
         noMorePostings = false;
-        skipBlockChanged = false;
     }
 
 
@@ -152,6 +148,8 @@ public class PostingList extends ArrayList<Posting> {
 
         //Update the iterator for the current posting list
         iterator = this.iterator();
+
+        System.out.println("Posting list: " + this);
     }
 
     /**
@@ -159,6 +157,7 @@ public class PostingList extends ArrayList<Posting> {
      * @return the next posting
      */
     public Posting next(){
+
         //System.out.println("This.docID: " + this.docId + "/" + currentSkipBlock.maxDocid);
         if(this.docId == currentSkipBlock.maxDocid){
             //System.out.println("Last docId of the block");
@@ -171,6 +170,7 @@ public class PostingList extends ArrayList<Posting> {
             }
 
             loadPostingList();
+
         }
 
         //Get the next posting in the iteration
@@ -188,7 +188,6 @@ public class PostingList extends ArrayList<Posting> {
      * Move the skip blocks iterator to the next skip block and set the current skip block to it.
      */
     public void nextSkipBlock(){
-        skipBlockChanged = true;
         currentSkipBlock = skipBlocksIterator.next();
     }
 
@@ -199,8 +198,13 @@ public class PostingList extends ArrayList<Posting> {
      * @return the posting list that is greater or equal to the searched doc id, return null if no more
      * posting are present in the posting list
      */
-    public Posting nextGEQ(long searchedDocId){
+    public void nextGEQ(long searchedDocId){
 
+        if(this.docId == searchedDocId){
+            return;
+        }
+
+        System.out.println("SkipBlock MaxDocID: "+ currentSkipBlock.maxDocid);
         //Move to the next skip block until we find that the searched doc id can be contained in the
         // portion of the posting list described by the skip block
         while(currentSkipBlock.maxDocid < searchedDocId){
@@ -216,6 +220,7 @@ public class PostingList extends ArrayList<Posting> {
 
                 //Move the iterator to the next skip block
                 nextSkipBlock();
+                loadPostingList();
             }else{
 
                 //All the skip blocks are traversed, the posting list doesn't contain a doc id GEQ than
@@ -227,16 +232,12 @@ public class PostingList extends ArrayList<Posting> {
                 //Set the end of posting list flag
                 setNoMorePostings();
 
-                return null;
+                return;
             }
         }
 
         //load the posting lists related to the current skip block, once we've found a posting list portion
         // that can contain the searched doc id
-        if(skipBlockChanged){
-            skipBlockChanged = false;
-            loadPostingList();
-        }
 
 
         //Helper variable to hold the posting during the traversing of the posting list
@@ -244,25 +245,16 @@ public class PostingList extends ArrayList<Posting> {
 
         //While we have more postings
         while(iterator.hasNext()){
-
             //Move to the next posting
             posting = next();
-
-            //If we've reached a doc id GEQ than the searched
-            if(this.docId >= searchedDocId){
-
-                //Debug
-                //System.out.println(this.docId + "stopped here");
-
-                return posting;
+            if(posting.docId > searchedDocId){
+                return;
             }
         }
 
         //No postings are GEQ in the current posting list, we've finished the traversing the whole posting list
         if(!skipBlocksIterator.hasNext())
             setNoMorePostings();
-
-        return null;
     }
 
 
