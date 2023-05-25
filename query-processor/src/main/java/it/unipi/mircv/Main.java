@@ -20,25 +20,31 @@ public class Main
 
     public static void main( String[] args )
     {
-        System.out.println("[QUERY PROCESSOR] Loading the lexicon in memory...");
-        lexicon = new Lexicon();
-        lexicon.loadLexicon();
-        System.out.println("[QUERY PROCESSOR] Lexicon size: " + lexicon.size());
-
-        System.out.println("[QUERY PROCESSOR] Loading the document index in memory...");
-        DocumentIndex documentIndex = new DocumentIndex();
-        documentIndex.loadDocumentIndex();
-        System.out.println("[QUERY PROCESSOR] Document index size: " + documentIndex.size());
-
-        System.out.println("[QUERY PROCESSOR] Data structures loaded in memory.");
 
         Configuration configuration = new Configuration();
 
         //If no configuration is found, then no inverted index is present. The program exits.
         if(!configuration.loadConfiguration())
             return;
+
         System.out.println("[QUERY PROCESSOR] Building inverted index configuration:");
         System.out.println(configuration);
+
+        System.out.println("[QUERY PROCESSOR] Loading the lexicon in memory...");
+        lexicon = new Lexicon();
+        lexicon.loadLexicon();
+        if(configuration.getDebug()){
+            System.out.println("[DEBUG] Lexicon size: " + lexicon.size());
+        }
+
+        System.out.println("[QUERY PROCESSOR] Loading the document index in memory...");
+        DocumentIndex documentIndex = new DocumentIndex();
+        documentIndex.loadDocumentIndex();
+        if(configuration.getDebug()){
+            System.out.println("[DEBUG] Document index size: " + documentIndex.size());
+        }
+
+        System.out.println("[QUERY PROCESSOR] Data structures loaded in memory.");
 
         //Flag to indicate if the stopwords removal and stemming are enabled, this must be retrieved from the configuration
         boolean stopwordsRemovalAndStemming = configuration.getStemmingAndStopwordsRemoval();
@@ -89,9 +95,9 @@ public class Main
 
                 //Score the collection
                 if(queryType){
-                    result = Score.scoreCollectionDisjunctive(postingLists,documentIndex, bm25scoring);
+                    result = Score.scoreCollectionDisjunctive(postingLists,documentIndex, bm25scoring, configuration.getDebug());
                 }else {
-                    result = Score.scoreCollectionConjunctive(postingLists,documentIndex, bm25scoring);
+                    result = Score.scoreCollectionConjunctive(postingLists,documentIndex, bm25scoring, configuration.getDebug());
                 }
 
                 //Print the results in a formatted way
@@ -214,6 +220,9 @@ public class Main
         return results.toArray(new String[0]);
     }
 
+    /**
+     * updates the query parameters for what regards the scoring metric (tfidf/bm25) and the type of query (conjunctive/disjunctive)
+     */
     private static void setQueryProcessorParameters(){
         //Scanner to read from the standard input stream
         Scanner scanner = new Scanner(System.in);

@@ -102,6 +102,9 @@ public class IndexMerger {
                 randomAccessFileDocIds[i] = new RandomAccessFile(INVERTED_INDEX_DOC_IDS_BLOCK_PATH+(i+1)+".txt", "r");
                 randomAccessFilesFrequencies[i] = new RandomAccessFile(INVERTED_INDEX_FREQUENCIES_BLOCK_PATH+(i+1)+".txt", "r");
                 randomAccessFilesLexicon[i] = new RandomAccessFile(LEXICON_BLOCK_PATH+(i+1)+".txt", "r");
+                if(debug){
+                    System.out.println("[DEBUG] Block " + i + " opened");
+                }
             }
 
             //Create a stream for the lexicon file, the docids file and the frequencies file, the stream is opened as write only
@@ -194,7 +197,10 @@ public class IndexMerger {
 
                 //Check if the end of the block is reached or a problem during the reading occurred
                 if(curTerm[integer] == null) {
-                    System.out.println("[MERGER] Block " + integer + " has reached the end of the file");
+                    if(debug) {
+                        System.out.println("[DEBUG] Block " + integer + " has reached the end of the file");
+                    }
+
                     endOfBlock[integer] = true;
                     continue;
                 }
@@ -258,9 +264,10 @@ public class IndexMerger {
                         );
 
                 //For DEBUG
-                /*if(j%25000 == 0) {
-                    System.out.println("[MERGER] idf = " + idf + ". TermInfo.idf = " + lexiconEntry.getIdf() + ". Term: " + lexiconEntry.getTerm());
-                }*/
+                if(debug && j%25000 == 0) {
+                    System.out.println("[DEBUG] Current lexicon entry: " + lexiconEntry);
+                    System.out.println("[DEBUG] Number of skipBlocks created: " + skipBlocks.size());
+                }
 
                 lexiconEntry.writeToFile(lexiconFile, lexiconEntry);
 
@@ -361,6 +368,12 @@ public class IndexMerger {
                         bm25TermUpperBound           //term upper bound for the bm25
                 );
 
+                //For DEBUG
+                if(debug && j%25000 == 0) {
+                    System.out.println("[DEBUG] Current lexicon entry: " + lexiconEntry);
+                    System.out.println("[DEBUG] Number of skipBlocks created: " + skipBlocks.size());
+                }
+
                 lexiconEntry.writeToFile(lexiconFile, lexiconEntry);
 
                 docIdsOffset += 8L*docIds.size();
@@ -400,8 +413,6 @@ public class IndexMerger {
             System.err.println("[MERGER] File not found: " + e.getMessage());
             throw new RuntimeException(e);
         }
-
-        System.out.println("[MERGER] Deleting the partial blocks !!!! REMOVE /**/ to make it work");
 
         if(deleteBlocks(NUMBER_OF_BLOCKS)){
             System.out.println("[MERGER] Blocks deleted successfully");

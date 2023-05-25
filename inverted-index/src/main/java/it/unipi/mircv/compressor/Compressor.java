@@ -250,6 +250,12 @@ public class Compressor {
         return numbers;
     }
 
+    /**
+     * Decode the given array of bytes that contains a Variable Byte Encoding of a list of longs, returning the
+     * corresponding list of longs.
+     * @param bytes Compressed list of longs.
+     * @return Decompressed list of longs.
+     */
     public static ArrayList<Long> variableByteDecodeLong(byte[] bytes){
 
         //Array to hold the decoded numbers
@@ -284,37 +290,5 @@ public class Compressor {
     }
 
     public static void main(String[] args) {
-
-        ArrayList<Long> numbers = new ArrayList<>();
-        numbers.add(10L); numbers.add(20L); numbers.add(30L); numbers.add(44L); numbers.add(51L); numbers.add(68L);
-        numbers.add(79L); numbers.add(813L); numbers.add(995L); numbers.add(1030L); numbers.add(11200L);
-
-        ArrayList<SkipBlock> skipBlocks = new ArrayList<SkipBlock>();
-
-        for(SkipBlock sb : skipBlocks){
-            System.out.println(sb);
-        }
-
-        /*variableByteEncodeDocId(numbers, skipBlocks);
-
-        for(SkipBlock sb : skipBlocks){
-            System.out.println(sb);
-        }
-
-        ArrayList<Integer> freq = new ArrayList<Integer>();
-        for(int i = 0; i < numbers.size(); i++){
-            freq.add(i);
-        }
-
-        System.out.println("Adding freq information\n\n");
-
-        variableByteEncodeFreq(freq, skipBlocks);
-
-        for(SkipBlock sb : skipBlocks){
-            System.out.println(sb);
-        }*/
-
     }
-
-
 }

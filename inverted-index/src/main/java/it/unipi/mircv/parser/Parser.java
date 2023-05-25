@@ -31,7 +31,7 @@ public class Parser {
         String docno;
         String text;
 
-        // TODO: 03/11/2022 firstly check if the line is not malformed is in the format <docno>\t<text>\n
+        // TODO: 03/11/2022 check if in the complete collection there are badly formatted files
 
         //Divide the line using \t as delimiter, it'll split the doc_id and the text
         StringTokenizer stringTokenizer = new StringTokenizer(line, "\t");

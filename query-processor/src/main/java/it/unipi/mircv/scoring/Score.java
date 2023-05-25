@@ -1,6 +1,8 @@
 package it.unipi.mircv.scoring;
 
 import it.unipi.mircv.beans.*;
+import org.checkerframework.checker.units.qual.C;
+import sun.security.krb5.Config;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -11,7 +13,8 @@ public class Score {
     //Values used for the BM25 scoring
     static final double K1 = 1.5;
     static final double B = 0.75;
-    
+
+    //Length of the final ranking
     static final int BEST_K_VALUE = 20;
 
     //Retrieve the statistics of the inverted index
@@ -19,13 +22,14 @@ public class Score {
 
     /**
      * Implementation of the algorithm Document-At-a-Time, it iterates over all the posting lists accessing and scoring
-     * the document with the minimum document id.
+     * the document with the minimum document id in the disjunctive query case.
      * @param postingLists Array of posting lists.
      * @param documentIndex document index containing the information of the documents.
      * @param BM25 if it is true, then the BM25 scoring is applied, otherwise the scoring is TFIDF.
+     * @param debug flag to show if in debug mode
      * @return an ordered array of tuples containing the document id and the score associated with the document.
      */
-    public static ArrayList<Tuple<Long,Double>> scoreCollectionDisjunctive(PostingList[] postingLists, DocumentIndex documentIndex, boolean BM25) {
+    public static ArrayList<Tuple<Long,Double>> scoreCollectionDisjunctive(PostingList[] postingLists, DocumentIndex documentIndex, boolean BM25, boolean debug) {
 
         RankedDocs rankedDocs = new RankedDocs(BEST_K_VALUE);
         ArrayList<Integer> essential = new ArrayList<>();
@@ -53,9 +57,10 @@ public class Score {
 
         for(int i = 0; i < orderedPostingLists.size(); i++){
             essential.add(i);
-            //System.out.println(orderedPostingLists.get(i).getTermInfo().getTfidfTermUpperBound());
             postingLists[i] = orderedPostingLists.get(i);
-            //System.out.println(postingLists[i].getTermInfo().getTfidfTermUpperBound());
+            if(debug){
+                System.out.println("[DEBUG] Lexicon entry:\n" + postingLists[i].getTermInfo());
+            }
         }
 
 
@@ -77,10 +82,11 @@ public class Score {
             //Retrieve the minimum document id and the list of posting lists containing it
             minDocidTuple = minDocid(postingLists);
 
-            //Debug
-            //System.out.println("------------------");
-            //System.out.println("Min docID: " + minDocidTuple.getFirst());
-            //System.out.println("Blocks with minDocID: " + minDocidTuple.getSecond());
+            if(debug) {
+                System.out.println("------------------");
+                System.out.println("[DEBUG] Min docID: " + minDocidTuple.getFirst());
+                System.out.println("[DEBUG] Blocks with minDocID: " + minDocidTuple.getSecond());
+            }
 
             //check if some docs can enter the top K ranking
             if(!foundEssential(minDocidTuple.getSecond(), essential)){
@@ -104,12 +110,19 @@ public class Score {
                     //Add the partial score to the accumulated score
                     score += tf_BM25*postingLists[minDocidTuple.getSecond().get(index)].getTermInfo().getIdf();
 
+                    if(debug){
+                        System.out.println("[DEBUG] bm25 docID " + minDocidTuple.getFirst() + ": " + score);
+                    }
+
                     double newMaxScore = score;
                     for(int j = index + 1; j < minDocidTuple.getSecond().size(); j++){
                         newMaxScore += postingLists[minDocidTuple.getSecond().get(j)].getTermInfo().getBm25TermUpperBound();
                     }
 
                     if(newMaxScore < rankedDocs.getThreshold()){
+                        if(debug) {
+                            System.out.println("[DEBUG] New Max Score < rankedDocs.getThreshold: " + newMaxScore + "<" + rankedDocs.getThreshold() +  " docID " + minDocidTuple.getFirst() + " ruled out");
+                        }
                         for(int j = index; j < minDocidTuple.getSecond().size(); j++){
                             postingLists[minDocidTuple.getSecond().get(j)].next();
                         }
@@ -122,11 +135,9 @@ public class Score {
                     //Add the partial score to the accumulated score
                     score += tf_tfidf*postingLists[minDocidTuple.getSecond().get(index)].getTermInfo().getIdf();
 
-                    //if(postingLists[minDocidTuple.getSecond().get(index)].getDocId() == 59364){
-                    //    System.out.println("tf_tfidf: " + tf_tfidf);
-                    //    System.out.println("idf: " + postingLists[minDocidTuple.getSecond().get(index)].getTermInfo().getIdf());
-                    //    System.out.println("Score: " + score);
-                    //}
+                    if(debug){
+                        System.out.println("[DEBUG] tfidf docID " + minDocidTuple.getFirst() + ": " + score);
+                    }
 
                     double newMaxScore = score;
                     for(int j = index + 1; j < minDocidTuple.getSecond().size(); j++){
@@ -134,9 +145,9 @@ public class Score {
                     }
 
                     if(newMaxScore < rankedDocs.getThreshold()){
-                        //if(postingLists[minDocidTuple.getSecond().get(index)].getDocId() == 59364) {
-                        //    System.out.println("New Max Score < rankedDocs.getThreshold: " + newMaxScore + "<" + rankedDocs.getThreshold());
-                        //}
+                        if(debug) {
+                            System.out.println("[DEBUG] New Max Score < rankedDocs.getThreshold: " + newMaxScore + "<" + rankedDocs.getThreshold() +  " docID " + minDocidTuple.getFirst() + " ruled out");
+                        }
                         for(int j = index; j < minDocidTuple.getSecond().size(); j++){
                             postingLists[minDocidTuple.getSecond().get(j)].next();
                         }
@@ -150,21 +161,17 @@ public class Score {
                 postingLists[minDocidTuple.getSecond().get(index)].next();
             }
 
-            //Debug
-            //System.out.println("------------------");
-            //System.out.println("Docid:" + minDocidTuple.getFirst());
-            //System.out.println("tfidf: " + tf_tfidf);
-            //System.out.println("BM25: " + tf_BM25);
-            //System.out.println("------------------");
-
-
             //Add the score of the current document to the priority queue
             if(score > rankedDocs.getThreshold()){
                 rankedDocs.add(new Tuple<>(minDocidTuple.getFirst(), score));
 
+                double old_threshold = rankedDocs.getThreshold();
                 //update the non-essential and the essential posting lists
                 if(rankedDocs.getThreshold() > 0) {
                     updateEssentialPostingLists(essential, orderedPostingLists, rankedDocs.getThreshold(), BM25);
+                    if(debug){
+                        System.out.println("[DEBUG] Threshold changed: " + old_threshold + " -> " + rankedDocs.getThreshold());
+                    }
                 }
             }
 
@@ -173,11 +180,18 @@ public class Score {
         }
 
         //Print the time used to score the documents, so to generate an answer for the query
-        System.out.println("[SCORE DOCUMENT] Total scoring time: " + (System.currentTimeMillis() - begin) + "ms");
+        System.out.println("\n[SCORE DOCUMENT] Total scoring time: " + (System.currentTimeMillis() - begin) + "ms");
 
         return getBestKDocuments(rankedDocs, BEST_K_VALUE);
     }
 
+    /**
+     * function to check if at least an element of postingListIndex (posting lists related to the query) is in the essential set
+     *
+     * @param postingListsIndex indexes of the query-related posting lists
+     * @param essential arraylist containing the current essential posting lists
+     * @return true if at least a posting list related to the query is in the essential set, otherwise false
+     */
     private static boolean foundEssential(ArrayList<Integer> postingListsIndex, ArrayList<Integer> essential) {
         for(int i : postingListsIndex){
             for(int j: essential){
@@ -189,6 +203,14 @@ public class Score {
         return false;
     }
 
+    /**
+     * function to update the essential posting lists for MaxScore
+     *
+     * @param essential arraylist that will contain the indexes of the essential posting lists
+     * @param orderedPostingLists list of all the posting lists related to the query
+     * @param threshold current threshold of the ranking
+     * @param BM25 if BM25 is to be used or not (if not tfidf will be used)
+     */
     private static void updateEssentialPostingLists(ArrayList<Integer> essential, ArrayList<PostingList> orderedPostingLists, double threshold, boolean BM25) {
         int tmp_count = 0;
         essential.clear();
@@ -209,7 +231,16 @@ public class Score {
     }
 
 
-    public static ArrayList<Tuple<Long,Double>> scoreCollectionConjunctive(PostingList[] postingLists, DocumentIndex documentIndex, boolean BM25) {
+    /**
+     * Implementation of the algorithm Document-At-a-Time, it iterates over all the posting lists accessing and scoring
+     * the document with the minimum document id in the conjunctive query case.
+     * @param postingLists Array of posting lists.
+     * @param documentIndex document index containing the information of the documents.
+     * @param BM25 if it is true, then the BM25 scoring is applied, otherwise the scoring is TFIDF.
+     * @param debug flag to show if in debug mode
+     * @return an ordered array of tuples containing the document id and the score associated with the document.
+     */
+    public static ArrayList<Tuple<Long,Double>> scoreCollectionConjunctive(PostingList[] postingLists, DocumentIndex documentIndex, boolean BM25, boolean debug) {
 
         //Priority queue to store the document id and its score, based on the priority of the document
         RankedDocs rankedDocs = new RankedDocs(BEST_K_VALUE);
@@ -223,7 +254,6 @@ public class Score {
         //Move the iterators of each posting list to the first position
         for (PostingList postingList : postingLists) {
             if (postingList.hasNext()) {
-                System.out.println(postingList.next() + " -> DOCID: " + postingList.getDocId());
                 orderedPostingLists.add(postingList);
             }
         }
@@ -238,9 +268,10 @@ public class Score {
 
         for(int i = 0; i < orderedPostingLists.size(); i++){
             essential.add(i);
-            System.out.println(orderedPostingLists.get(i).getTermInfo().getTfidfTermUpperBound());
             postingLists[i] = orderedPostingLists.get(i);
-            System.out.println(postingLists[i].getTermInfo().getTfidfTermUpperBound());
+            if(debug){
+                System.out.println("[DEBUG] Lexicon entry:\n" + postingLists[i].getTermInfo());
+            }
         }
 
         //Tuple to store the current minimum document id and the list of posting lists containing it
@@ -260,9 +291,12 @@ public class Score {
             //Retrieve the maximum document id and the list of posting lists containing it
             maxDocid = maxDocid(postingLists);
 
+            if(debug) {
+                System.out.println("--------------------------------");
+                System.out.println("[DEBUG] Searched DocId: " + maxDocid);
+            }
+
             //Perform the nextGEQ operation for each posting list
-            System.out.println("--------------------------------");
-            System.out.println("Searched DocId: " + maxDocid);
             for (PostingList postingList : postingLists) {
                 //If we reach the end of the posting list then we break the for, the conjunctive query is ended
                 // and all the next conditions are not satisfied
@@ -289,15 +323,19 @@ public class Score {
                         //Add the partial score to the accumulated score
                         score += tf_BM25 * postingList.getTermInfo().getIdf();
 
+                        if(debug){
+                            System.out.println("[DEBUG] bm25 docID " + maxDocid + ": " + score);
+                        }
+
                         double newMaxScore = score;
                         for(int j = index + 1; j < postingLists.length; j++){
                             newMaxScore += postingLists[j].getTermInfo().getBm25TermUpperBound();
                         }
 
                         if(newMaxScore < rankedDocs.getThreshold()){
-                            //if(postingLists[minDocidTuple.getSecond().get(index)].getDocId() == 59364) {
-                            //    System.out.println("New Max Score < rankedDocs.getThreshold: " + newMaxScore + "<" + rankedDocs.getThreshold());
-                            //}
+                            if(debug) {
+                                System.out.println("[DEBUG] New Max Score < rankedDocs.getThreshold: " + newMaxScore + "<" + rankedDocs.getThreshold() +  " docID " + maxDocid + " ruled out");
+                            }
                             for(int j = index; j < postingLists.length; j++){
                                 postingLists[j].next();
                             }
@@ -312,36 +350,30 @@ public class Score {
                         //Add the partial score to the accumulated score
                         score += tf_tfidf * postingList.getTermInfo().getIdf();
 
+                        if(debug){
+                            System.out.println("[DEBUG] tfidf docID " + maxDocid + ": " + score);
+                        }
+
                         double newMaxScore = score;
                         for(int j = index + 1; j < postingLists.length; j++){
                             newMaxScore += postingLists[j].getTermInfo().getTfidfTermUpperBound();
                         }
 
                         if(newMaxScore < rankedDocs.getThreshold()){
-                            //if(postingLists[minDocidTuple.getSecond().get(index)].getDocId() == 59364) {
-                            //    System.out.println("New Max Score < rankedDocs.getThreshold: " + newMaxScore + "<" + rankedDocs.getThreshold());
-                            //}
+                            if(debug) {
+                                System.out.println("[DEBUG] New Max Score < rankedDocs.getThreshold: " + newMaxScore + "<" + rankedDocs.getThreshold() +  " docID " + maxDocid + " ruled out");
+                            }
                             for(int j = index; j < postingLists.length; j++){
                                 postingLists[j].next();
                             }
                             break;
                         }
-                        //if(postingList.getDocId() == 7146){
-                        //    System.out.println("tf_tfidf: " + tf_tfidf);
-                        //    System.out.println("idf: " + postingList.getTermInfo().getIdf());
-                        //}
                     }
-                    //Move the cursor to the next posting (this must be done even if the document is not scored), if there
-                    // is one, otherwise set the flag of the posting list to true, in this way we mark the end of the
-                    // posting list
 
                     //Move the cursor to the next posting
                     postingList.next();
                     index++;
                 }
-
-                //Debug
-                System.out.println("--------------------------------");
 
                 //Since we have a document in all the posting lists then its score is relevant for the conjunctive query
                 // it's value must be added to the priority queue, otherwise the score is not relevant, and we don't add it.
@@ -349,17 +381,22 @@ public class Score {
                 if(score > rankedDocs.getThreshold()) {
                     rankedDocs.add(new Tuple<>(maxDocid, score));
 
+                    double old_threshold = rankedDocs.getThreshold();
                     //update the non-essential and the essential posting lists
                     if(rankedDocs.getThreshold() > 0){
                         updateEssentialPostingLists(essential, orderedPostingLists, rankedDocs.getThreshold(), BM25);
+                        if(debug){
+                            System.out.println("[DEBUG] Threshold changed: " + old_threshold + " -> " + rankedDocs.getThreshold());
+                        }
                     }
                 }
             }
             //clear the support variables for the next iteration
             score = 0;
         }
+
         //print the time used to score the documents, so to generate an answer for the query
-        System.out.println("[SCORE DOCUMENT] Total scoring time: " + (System.currentTimeMillis() - begin) + "ms");
+        System.out.println("\n[SCORE DOCUMENT] Total scoring time: " + (System.currentTimeMillis() - begin) + "ms");
 
         //return the top K documents
         return getBestKDocuments(rankedDocs, BEST_K_VALUE);
@@ -415,6 +452,11 @@ public class Score {
         return true;
     }
 
+    /**
+     * method to check if at least a posting list is ended
+     * @param postingLists array of posting lists
+     * @return true if at least a posting list is ended, otherwise false
+     */
     public static boolean aPostingListEnded(PostingList[] postingLists){
 
         //For each posting list check if it has a next posting

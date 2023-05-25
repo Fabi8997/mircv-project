@@ -205,18 +205,16 @@ public class TermInfo {
 
     @Override
     public String toString() {
-        return "TermInfo{" +
-                "term='" + term + '\'' +
-                ", offsetDocId=" + offsetDocId +
-                ", offsetFrequency=" + offsetFrequency +
-                ", offsetSkipBlock=" + offsetSkipBlock +
-                ", numberOfSkipBlocks=" + numberOfSkipBlocks +
-                ", idf=" + idf +
-                ", docIdsBytesLength=" + docIdsBytesLength +
-                ", frequenciesBytesLength=" + frequenciesBytesLength +
-                ", postingListLength=" + postingListLength +
-                ", tfidfTermUpperBound=" + tfidfTermUpperBound +
-                ", bm25TermUpperBound=" + bm25TermUpperBound +
-                '}';
+        return "\tTerm: " + term + '\n' +
+                "\toffsetDocId: " + offsetDocId + '\n' +
+                "\toffsetFrequency: " + offsetFrequency + '\n' +
+                "\toffsetSkipBlock: " + offsetSkipBlock + '\n' +
+                "\tnumberOfSkipBlocks: " + numberOfSkipBlocks + '\n' +
+                "\tidf: " + idf + '\n' +
+                "\tdocIdsBytesLength: " + docIdsBytesLength + '\n' +
+                "\tfrequenciesBytesLength: " + frequenciesBytesLength + '\n' +
+                "\tpostingListLength: " + postingListLength + '\n' +
+                "\ttfidfTermUpperBound: " + tfidfTermUpperBound + '\n' +
+                "\tbm25TermUpperBound: " + bm25TermUpperBound + '\n';
     }
 }

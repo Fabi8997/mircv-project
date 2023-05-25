@@ -16,10 +16,6 @@ public class Utils {
         return String.format("%" + length + "." + length + "s", text);
     }
 
-    public static String rightpad(String text, int length) {
-        return String.format("%-" + length + "." + length + "s", text);
-    }
-
     /**
      * Compute the number of splits of the given number needed to encode it using variable-length encoding.
      * It computes the base 128 logarithm of the number and add 1 to it, obtaining the number of groups of

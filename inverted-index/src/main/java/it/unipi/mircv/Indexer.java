@@ -244,7 +244,9 @@ public class Indexer {
         return Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory() < threshold;
     }
 
-    // TODO: 21/05/2023  
+    /**
+     * Method to clear the Files folder
+     */
     private static void clearFiles(){
         try {
             FileUtils.cleanDirectory(new File(FILES_PATH));
@@ -254,6 +256,10 @@ public class Indexer {
         }
     }
 
+    /**
+     * method to get the amount of memory used with respect to the memory available to the process
+     * @return the amount of memory used with respect to the memory available to the process
+     */
     private static long getMemoryUsed(){
         Runtime rt = Runtime.getRuntime();
         long total_mem = rt.totalMemory();

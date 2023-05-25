@@ -44,9 +44,6 @@ public class PostingList extends ArrayList<Posting> {
     //Variable used to store the current skip block information
     private SkipBlock currentSkipBlock;
 
-    //Skip blocks of the posting list
-    private ArrayList<SkipBlock> skipBlocks;
-
     //Used to store the starting configuration
     private Configuration configuration;
 
@@ -93,7 +90,8 @@ public class PostingList extends ArrayList<Posting> {
 
 
         //Load the skip blocks list of the current term's posting list
-        skipBlocks = readPostingListSkipBlocks(
+        //Skip blocks of the posting list
+        ArrayList<SkipBlock> skipBlocks = readPostingListSkipBlocks(
                 randomAccessFileSkipBlocks,
                 termInfo.getOffsetSkipBlock(),
                 termInfo.getNumberOfSkipBlocks()
@@ -107,11 +105,6 @@ public class PostingList extends ArrayList<Posting> {
 
         //Load the posting list of the current block
         loadPostingList();
-
-        //System.out.println(this);
-
-        //System.out.println(skipBlocks.get(0));
-
     }
 
     /**
@@ -154,7 +147,9 @@ public class PostingList extends ArrayList<Posting> {
         //Update the iterator for the current posting list
         iterator = this.iterator();
 
-        System.out.println("Posting list: " + this);
+        if(configuration.getDebug()){
+            System.out.println("[DEBUG] Partial posting list: " + this);
+        }
     }
 
     /**
@@ -200,7 +195,6 @@ public class PostingList extends ArrayList<Posting> {
      * Search the next doc id of the current posting list, such that is greater or equal to the searched doc id.
      * It exploits the skip blocks to traverse faster the posting list
      * @param searchedDocId doc id to search
-     * @return the posting list that is greater or equal to the searched doc id, return null if no more
      * posting are present in the posting list
      */
     public void nextGEQ(long searchedDocId){
@@ -209,19 +203,20 @@ public class PostingList extends ArrayList<Posting> {
             return;
         }
 
-        System.out.println("SkipBlock MaxDocID: "+ currentSkipBlock.maxDocid);
+        if(configuration.getDebug()){
+            System.out.println("[DEBUG] Max docId in current skipBlock < searched docId: " + currentSkipBlock.maxDocid +" < "+ searchedDocId);
+        }
         //Move to the next skip block until we find that the searched doc id can be contained in the
         // portion of the posting list described by the skip block
         while(currentSkipBlock.maxDocid < searchedDocId){
-
-            //Debug
-            System.out.println(currentSkipBlock.maxDocid +" < "+ searchedDocId);
 
             //If it is possible to move to the next skip block, then move the iterator
             if(skipBlocksIterator.hasNext()){
 
                 //Debug
-                System.out.println("changing the skip block");
+                if(configuration.getDebug()){
+                    System.out.println("[DEBUG] Changing the skip block");
+                }
 
                 //Move the iterator to the next skip block
                 nextSkipBlock();
@@ -232,12 +227,18 @@ public class PostingList extends ArrayList<Posting> {
                 // the one searched
 
                 //Debug
-                System.out.println("end of posting list");
+                if(configuration.getDebug()){
+                    System.out.println("[DEBUG] End of posting list");
+                }
 
                 //Set the end of posting list flag
                 setNoMorePostings();
 
                 return;
+            }
+
+            if(configuration.getDebug()){
+                System.out.println("[DEBUG] Max docId in the new skipBlock < searched docId: " + currentSkipBlock.maxDocid +" < "+ searchedDocId);
             }
         }
 
@@ -287,13 +288,6 @@ public class PostingList extends ArrayList<Posting> {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    /**
-     * Reset the iterator to the beginning of the posting list
-     */
-    public void resetIterator(){
-        iterator = this.iterator();
     }
 
     /**

@@ -11,8 +11,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-
-// TODO: 31/03/2023 Write the docids and frequencies of the terms in a compressed format
 /**
  * Represent a component that gives the methods to build the lexicon and the inverted index for each block.
  */
