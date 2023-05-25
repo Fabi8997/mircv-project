@@ -134,8 +134,13 @@ public class PostingList extends ArrayList<Posting> {
                     currentSkipBlock.skipBlockFreqLength);
         }else {//Read without compression
 
-            docids = readPostingListDocIds(randomAccessFileDocIds,termInfo.getOffsetDocId(),skipBlocks.get(0).skipBlockDocidLength);
-            frequencies = readPostingListFrequencies(randomAccessFileFrequencies, termInfo.getOffsetFrequency(), skipBlocks.get(0).skipBlockFreqLength);
+            docids = readPostingListDocIds(randomAccessFileDocIds,
+                    termInfo.getOffsetDocId() + currentSkipBlock.startDocidOffset,
+                    currentSkipBlock.skipBlockDocidLength);
+
+            frequencies = readPostingListFrequencies(randomAccessFileFrequencies,
+                    termInfo.getOffsetFrequency() + currentSkipBlock.startFreqOffset,
+                    currentSkipBlock.skipBlockFreqLength);
         }
 
         //Remove the previous postings

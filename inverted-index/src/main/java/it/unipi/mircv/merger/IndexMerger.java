@@ -29,7 +29,7 @@ public class IndexMerger {
      * @param compress If true, the inverted index and the lexicon blocks will be compressed using VBE, otherwise
      *                 they will be written without compression.
      */
-    public static void merge(boolean compress) {
+    public static void merge(boolean compress, boolean debug) {
 
         System.out.println("[MERGER] Merging lexicon blocks and inverted index blocks...");
 

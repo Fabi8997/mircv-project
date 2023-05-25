@@ -215,18 +215,56 @@ public class Main
     }
 
     private static void setQueryProcessorParameters(){
+        //Scanner to read from the standard input stream
         Scanner scanner = new Scanner(System.in);
-        System.out.println("\nSet the query processor parameters:");
-        System.out.println("Scoring function:\n0 -> TFIDF\n1 -> BM25");
+        boolean correctParameters = false;
 
-        //If 0 => bm25scoring is false, otherwise is true, so we'll use the bm25 scoring function
-        bm25scoring = !scanner.nextLine().equals("0");
+        while (!correctParameters) {
+            System.out.println("\nSet the query processor parameters:");
+            System.out.println("Scoring function:\n0 -> TFIDF\n1 -> BM25");
 
-        System.out.println("Query type:\n0 -> Disjunctive\n1 -> Conjunctive");
+            String result;
 
-        //If 0 => disjunctive, 1 => conjunction, queryType is true with disjunctive and false with conjunctive queries
-        queryType = scanner.nextLine().equals("0");
+            if (scanner.hasNext()) {
+                result = scanner.nextLine();
+                //If 0 => bm25scoring is false, otherwise is true, so we'll use the bm25 scoring function
+                switch (result) {
+                    case "0":
+                        bm25scoring = false;
+                        correctParameters = true;
+                        break;
+                    case "1":
+                        bm25scoring = true;
+                        correctParameters = true;
+                        break;
+                }
+            }
+            System.out.println("Input not valid, enter one of the following commands: ");
+        }
 
+        correctParameters = false;
+        while (!correctParameters) {
+            System.out.println("Query type:\n0 -> Disjunctive\n1 -> Conjunctive");
+
+            String result;
+
+            if (scanner.hasNext()) {
+                result = scanner.nextLine();
+                //If 0 => disjunctive, 1 => conjunction, queryType is true with disjunctive and false with conjunctive queries
+                switch (result) {
+                    case "0":
+                        queryType = true;
+                        correctParameters = true;
+                        break;
+                    case "1":
+                        queryType = false;
+                        correctParameters = true;
+                        break;
+                }
+            }
+
+            System.out.println("Input not valid, enter one of the following commands: ");
+        }
     }
 
 

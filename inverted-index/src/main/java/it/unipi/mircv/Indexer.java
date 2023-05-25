@@ -45,7 +45,7 @@ public class Indexer {
      * @param path Path of the archive containing the collection, must be a tar.gz archive
      * @param stopwordsRemovalAndStemming true to apply the stopwords removal and stemming procedure, false otherwise
      */
-    private static void parseCollection(String path, Boolean stopwordsRemovalAndStemming){
+    private static void parseCollection(String path, Boolean stopwordsRemovalAndStemming, Boolean debug){
 
         //Path of the collection to be read
         File file = new File(path);
@@ -135,8 +135,8 @@ public class Indexer {
                         //Insert the document index row in the document index file. It's the building of the document
                         // index. The document index will be read from file in the future, the important is to build it
                         // and store it inside a file.
-                        new DocumentIndexEntry(parsedDocument.getDocNo(), parsedDocument.getDocumentLength())
-                                .writeToDisk(documentIndexFile, numberOfDocuments);
+                        DocumentIndexEntry docEntry = new DocumentIndexEntry(parsedDocument.getDocNo(), parsedDocument.getDocumentLength());
+                        docEntry.writeToDisk(documentIndexFile, numberOfDocuments);
 
                         //Check if the memory used is above the threshold defined
                         if(!isMemoryAvailable(THRESHOLD)){
@@ -163,6 +163,9 @@ public class Indexer {
                         if(numberOfDocuments%50000 == 0){
                             System.out.println("[INDEXER] " + numberOfDocuments+ " processed");
                             System.out.println("[INDEXER] Processing time: " + (System.nanoTime() - begin)/1000000000+ "s");
+                            if(debug) {
+                                System.out.println("[DEBUG] Document index entry: " + docEntry);
+                            }
                         }
                     }
                 }
@@ -255,8 +258,9 @@ public class Indexer {
 
         boolean stemmingAndStopwordsRemoval = false;
         boolean compressed = false;
+        boolean debug = false;
 
-        if(args.length == 1){
+        if(args.length >= 1){
             switch (args[0]) {
                 case "-s":
                     stemmingAndStopwordsRemoval = true;
@@ -268,27 +272,42 @@ public class Indexer {
                     stemmingAndStopwordsRemoval = true;
                     compressed = true;
                     break;
+                case "-d":
+                    debug = true;
+                    break;
                 default:
                     System.err.println("Invalid command\n"+ARGS_ERROR);
                     return;
             }
-        }else if(args.length > 1){
+        }
+
+        if(args.length == 2){
+            if(args[1].equals("-d") && !args[0].equals("-d")){
+                debug = true;
+            }
+            else{
+                System.err.println("Invalid command\n"+ARGS_ERROR);
+            }
+        }
+        else if(args.length > 2){
             System.err.println("Wrong number of arguments\n"+ARGS_ERROR);
             return;
         }
 
         System.out.println("[INDEXER] Configuration\n" +
                 "\tStemming and stopwords removal: " + stemmingAndStopwordsRemoval+"\n" +
-                "\tCompression: " + compressed);
+                "\tCompression: " + compressed + "\n" +
+                "\tDebug: " + debug);
 
         //Create the inverted index. Creates document index file and statistics file
-        parseCollection(COLLECTION_PATH, stemmingAndStopwordsRemoval);
+        parseCollection(COLLECTION_PATH, stemmingAndStopwordsRemoval, debug);
 
         //Merge the blocks to obtain the inverted index, compressed indicates if the compression is enabled
-        IndexMerger.merge(compressed);
+        IndexMerger.merge(compressed, debug);
 
         System.out.println("[INDEXER] Saving execution configuration...");
-        Configuration.saveConfiguration(stemmingAndStopwordsRemoval, compressed);
+        Configuration.saveConfiguration(stemmingAndStopwordsRemoval, compressed, debug);
+
         System.out.println("[INDEXER] Configuration saved");
 
     }

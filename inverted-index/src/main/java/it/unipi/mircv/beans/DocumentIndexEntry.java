@@ -98,7 +98,7 @@ public class DocumentIndexEntry {
 
     @Override
     public String toString() {
-        return "[ "+ docNo + ", " + docLength + ']';
+        return "[ docNo: "+ docNo + ", docLength: " + docLength + ']';
     }
 
     public static void main(String[] args){
