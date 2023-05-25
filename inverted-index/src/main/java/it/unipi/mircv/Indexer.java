@@ -21,7 +21,7 @@ public class Indexer {
     static int blockNumber = 1;
 
     //Path of the dataset
-    static String COLLECTION_PATH = "Dataset/samplecompressed.tar.gz";
+    static String COLLECTION_PATH = "Dataset/collection.tar.gz";
 
     static final String FILES_PATH = "Files/";
     //Document index file path

@@ -148,6 +148,7 @@ public class PostingList extends ArrayList<Posting> {
         iterator = this.iterator();
 
         if(configuration.getDebug()){
+            System.out.println("------------------");
             System.out.println("[DEBUG] Partial posting list: " + this);
         }
     }

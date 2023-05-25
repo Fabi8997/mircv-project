@@ -44,6 +44,10 @@ public class Configuration {
         return true;
     }
 
+    public void setDebug(boolean debug) {
+        this.debug = debug;
+    }
+
     /**
      * Write the configuration of the inverted index, in particular if the stemming and stopwords removal were enabled
      * and the same for compression.

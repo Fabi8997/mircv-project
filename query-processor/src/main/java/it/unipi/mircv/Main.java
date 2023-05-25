@@ -50,7 +50,7 @@ public class Main
         boolean stopwordsRemovalAndStemming = configuration.getStemmingAndStopwordsRemoval();
         
         //Set the initial parameters for the query processor
-        setQueryProcessorParameters();
+        setQueryProcessorParameters(configuration);
 
         //Wait for a new command, the while is used to prevent malformed inputs
         //This must be modified in order to have also the possibility to change the query parameters
@@ -119,7 +119,7 @@ public class Main
             } else if(command == 1) { //Change settings command
 
                 //Request the new query processor settings then change it
-                changeSettings();
+                changeSettings(configuration);
                 System.out.println("Settings changed!");
 
             } else if (command == 2) { //Exit command
@@ -185,8 +185,8 @@ public class Main
     /**
      * Method used to change the settings of the query processor, it can be used to change the scoring function.
      */
-    private static void changeSettings(){
-        setQueryProcessorParameters();
+    private static void changeSettings(Configuration configuration){
+        setQueryProcessorParameters(configuration);
     }
 
     /**
@@ -223,7 +223,7 @@ public class Main
     /**
      * updates the query parameters for what regards the scoring metric (tfidf/bm25) and the type of query (conjunctive/disjunctive)
      */
-    private static void setQueryProcessorParameters(){
+    private static void setQueryProcessorParameters(Configuration configuration){
         //Scanner to read from the standard input stream
         Scanner scanner = new Scanner(System.in);
         boolean correctParameters = false;
@@ -248,7 +248,9 @@ public class Main
                         break;
                 }
             }
-            System.out.println("Input not valid, enter one of the following commands: ");
+
+            if(!correctParameters)
+                System.out.println("Input not valid, enter one of the following commands: ");
         }
 
         correctParameters = false;
@@ -272,7 +274,33 @@ public class Main
                 }
             }
 
-            System.out.println("Input not valid, enter one of the following commands: ");
+            if(!correctParameters)
+                System.out.println("Input not valid, enter one of the following commands: ");
+        }
+
+        correctParameters = false;
+        while (!correctParameters) {
+            System.out.println("Do you need debug mode?\n0 -> Yes\n1 -> No");
+
+            String result;
+
+            if (scanner.hasNext()) {
+                result = scanner.nextLine();
+                //If 0 => debug mode on, 1 => debug mode off
+                switch (result) {
+                    case "0":
+                        configuration.setDebug(true);
+                        correctParameters = true;
+                        break;
+                    case "1":
+                        configuration.setDebug(false);
+                        correctParameters = true;
+                        break;
+                }
+            }
+
+            if(!correctParameters)
+                System.out.println("Input not valid, enter one of the following commands: ");
         }
     }
 

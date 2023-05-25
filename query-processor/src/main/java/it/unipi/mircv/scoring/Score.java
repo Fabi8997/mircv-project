@@ -160,9 +160,9 @@ public class Score {
 
             //Add the score of the current document to the priority queue
             if(score > rankedDocs.getThreshold()){
+                double old_threshold = rankedDocs.getThreshold();
                 rankedDocs.add(new Tuple<>(minDocidTuple.getFirst(), score));
 
-                double old_threshold = rankedDocs.getThreshold();
                 //update the non-essential and the essential posting lists
                 if(rankedDocs.getThreshold() > 0) {
                     updateEssentialPostingLists(essential, orderedPostingLists, rankedDocs.getThreshold(), BM25);
@@ -376,9 +376,9 @@ public class Score {
                 // it's value must be added to the priority queue, otherwise the score is not relevant, and we don't add it.
                 //Add the score of the current document to the priority queue
                 if(score > rankedDocs.getThreshold()) {
+                    double old_threshold = rankedDocs.getThreshold();
                     rankedDocs.add(new Tuple<>(maxDocid, score));
 
-                    double old_threshold = rankedDocs.getThreshold();
                     //update the non-essential and the essential posting lists
                     if(rankedDocs.getThreshold() > 0){
                         updateEssentialPostingLists(essential, orderedPostingLists, rankedDocs.getThreshold(), BM25);
