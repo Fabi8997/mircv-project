@@ -500,6 +500,5 @@ public class IndexMerger {
 
 
     public static void main(String[] args){
-        merge(true);
     }
 }
