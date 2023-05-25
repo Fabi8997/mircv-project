@@ -288,7 +288,4 @@ public class Compressor {
         //Return the list of numbers
         return numbers;
     }
-
-    public static void main(String[] args) {
-    }
 }

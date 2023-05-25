@@ -124,10 +124,4 @@ public class Parser {
             throw new RuntimeException(e);
         }
     }
-
-    public static void main(String[] args) {
-        //TEST parseCollection
-        //System.out.println(Parser.parseCollection("src/main/resources/dataset/sample.tsv", false));
-
-    }
 }

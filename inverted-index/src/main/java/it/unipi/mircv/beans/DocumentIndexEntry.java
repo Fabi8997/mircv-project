@@ -100,12 +100,4 @@ public class DocumentIndexEntry {
     public String toString() {
         return "[ docNo: "+ docNo + ", docLength: " + docLength + ']';
     }
-
-    public static void main(String[] args){
-        try (RandomAccessFile documentIndexFile = new RandomAccessFile(DocumentIndex.DOCUMENT_INDEX_PATH, "r")) {
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
 }

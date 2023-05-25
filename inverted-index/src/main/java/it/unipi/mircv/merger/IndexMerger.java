@@ -99,8 +99,11 @@ public class IndexMerger {
         try {
             //Create a stream for each random access files of each block, the stream is opened ad read only
             for (int i = 0; i < NUMBER_OF_BLOCKS; i++) {
+                //noinspection resource
                 randomAccessFileDocIds[i] = new RandomAccessFile(INVERTED_INDEX_DOC_IDS_BLOCK_PATH+(i+1)+".txt", "r");
+                //noinspection resource
                 randomAccessFilesFrequencies[i] = new RandomAccessFile(INVERTED_INDEX_FREQUENCIES_BLOCK_PATH+(i+1)+".txt", "r");
+                //noinspection resource
                 randomAccessFilesLexicon[i] = new RandomAccessFile(LEXICON_BLOCK_PATH+(i+1)+".txt", "r");
                 if(debug){
                     System.out.println("[DEBUG] Block " + i + " opened");
@@ -507,9 +510,5 @@ public class IndexMerger {
                 return false;
         }
         return true;
-    }
-
-
-    public static void main(String[] args){
     }
 }

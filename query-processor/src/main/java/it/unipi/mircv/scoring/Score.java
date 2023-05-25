@@ -1,9 +1,6 @@
 package it.unipi.mircv.scoring;
 
 import it.unipi.mircv.beans.*;
-import org.checkerframework.checker.units.qual.C;
-import sun.security.krb5.Config;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.PriorityQueue;

@@ -199,9 +199,6 @@ public class Indexer {
                 }
 
                 System.out.println("[INDEXER] Total processing time: " + (System.nanoTime() - begin)/1000000000+ "s");
-
-                //Close the random access file of the document index
-                documentIndexFile.close();
             }
 
         } catch (IOException e) {
