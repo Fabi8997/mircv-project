@@ -10,6 +10,7 @@ import it.unipi.mircv.parser.Parser;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.apache.commons.io.FileUtils;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -22,6 +23,7 @@ public class Indexer {
     //Path of the dataset
     static String COLLECTION_PATH = "Dataset/samplecompressed.tar.gz";
 
+    static final String FILES_PATH = "Files/";
     //Document index file path
     static final String DOCUMENT_INDEX_PATH = "Files/document_index.txt";
 
@@ -165,6 +167,7 @@ public class Indexer {
                             System.out.println("[INDEXER] Processing time: " + (System.nanoTime() - begin)/1000000000+ "s");
                             if(debug) {
                                 System.out.println("[DEBUG] Document index entry: " + docEntry);
+                                System.out.println("[DEBUG] Memory used: " + getMemoryUsed()*100 + "%");
                             }
                         }
                     }
@@ -242,16 +245,21 @@ public class Indexer {
     }
 
     // TODO: 21/05/2023  
-    private void clearFiles(){
-        
+    private static void clearFiles(){
+        try {
+            FileUtils.cleanDirectory(new File(FILES_PATH));
+        } catch (IOException e) {
+            System.out.println("Error deleting files inside Files folder");
+            throw new RuntimeException(e);
+        }
     }
-    /*For debug
+
     private static long getMemoryUsed(){
         Runtime rt = Runtime.getRuntime();
         long total_mem = rt.totalMemory();
         long free_mem = rt.freeMemory();
-        return total_mem - free_mem;
-    }*/
+        return  (total_mem - free_mem)/total_mem;
+    }
 
 
     public static void main(String[] args){
@@ -298,6 +306,8 @@ public class Indexer {
                 "\tStemming and stopwords removal: " + stemmingAndStopwordsRemoval+"\n" +
                 "\tCompression: " + compressed + "\n" +
                 "\tDebug: " + debug);
+
+        clearFiles();
 
         //Create the inverted index. Creates document index file and statistics file
         parseCollection(COLLECTION_PATH, stemmingAndStopwordsRemoval, debug);
