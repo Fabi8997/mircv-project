@@ -196,7 +196,7 @@ public class Main
      * @param stopwordsRemovalAndStemming if true remove the stopwords and applies the stemming procedure.
      * @return the array of terms after the parsing of the query
      */
-    private static String[] parseQuery(String query, boolean stopwordsRemovalAndStemming) {
+    public static String[] parseQuery(String query, boolean stopwordsRemovalAndStemming) {
 
         //Array of terms to build the result
         ArrayList<String> results = new ArrayList<>();
