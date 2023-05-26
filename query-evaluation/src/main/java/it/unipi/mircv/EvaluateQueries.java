@@ -1,6 +1,7 @@
 package it.unipi.mircv;
 
 import it.unipi.mircv.beans.*;
+import it.unipi.mircv.parser.Parser;
 import it.unipi.mircv.scoring.Score;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 
@@ -62,7 +63,7 @@ public class EvaluateQueries{
 
 
             //Parse the query
-            String[] queryTerms = Main.parseQuery(query, configuration.getStemmingAndStopwordsRemoval());
+            String[] queryTerms = parseQuery(query, lexicon, configuration.getStemmingAndStopwordsRemoval());
 
             System.out.println("Query: " + query + "\t" + "Terms: " + Arrays.toString(queryTerms));
 
@@ -96,6 +97,7 @@ public class EvaluateQueries{
                 result = Score.scoreCollectionConjunctive(postingLists,documentIndex, bm25scoring, false);
             }
 
+            // TODO: 26/05/2023 Instead of printing the results, write it to the file 
             //Print the results in a formatted way
             System.out.println("\n#\tDOCNO\t\tSCORE");
             for(int i = 0; i < result.size(); i++){
@@ -139,5 +141,38 @@ public class EvaluateQueries{
 
         evaluateQueries(getQueries(), configuration, documentIndex, lexicon, true, true);
 
+    }
+
+    /**
+     * Parses the query and returns the list of terms containing the query, the parsing process must be the same as the
+     * one used during the indexing phase.
+     * @param query the query string to parse
+     * @param stopwordsRemovalAndStemming if true remove the stopwords and applies the stemming procedure.
+     * @return the array of terms after the parsing of the query
+     */
+    public static String[] parseQuery(String query, Lexicon lexicon ,boolean stopwordsRemovalAndStemming) {
+
+        //Array of terms to build the result
+        ArrayList<String> results = new ArrayList<>();
+
+        System.out.println(query);
+
+        //Parse the query using the same configuration of the indexer
+        ParsedDocument parsedDocument = Parser.processDocument(query, stopwordsRemovalAndStemming);
+
+        //If no terms are returned by the parser then return null
+        if(parsedDocument == null){
+            return null;
+        }
+
+        //Remove the query terms that are not present in the lexicon
+        for(String term : parsedDocument.getTerms()){
+            if(lexicon.get(term) != null){
+                results.add(term);
+            }
+        }
+
+        //Return an array of String containing the results of the parsing process
+        return results.toArray(new String[0]);
     }
 }

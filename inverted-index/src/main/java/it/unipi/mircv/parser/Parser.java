@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.StringTokenizer;
 import java.util.stream.Collectors;
@@ -53,11 +52,8 @@ public class Parser {
             return null;
         }
 
-        System.out.println("Text: " + text);
         //Remove punctuation, then split when one or more whitespace characters occur
         String[] splittedText = removePunctuation(text).split("\\s+");
-
-        System.out.println("Splitetd: " + Arrays.toString(splittedText));
 
         if(stopwordsRemovalAndStemming) {
             //Remove stop words
@@ -67,7 +63,6 @@ public class Parser {
             splittedText = getStems(splittedText);
         }
 
-        System.out.println("Splitetd: " + Arrays.toString(splittedText));
         //System.out.println("[DEBUG: PARSING DOCUMENT] " + (System.currentTimeMillis() - begin) + "ms");
 
         return new ParsedDocument(docno, splittedText);
