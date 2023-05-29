@@ -118,14 +118,13 @@ public class EvaluateQueries{
 
             bufferedWriter = new BufferedWriter(new FileWriter(RESULTS_PATH,false));
 
-            // TODO: 27/05/2023 compute the avg of the completion time
+            double completionTimeTot = 0.0;
+            int numberOfQueries = 0;
 
             for( Tuple<Long,String> tuple : queries ){
 
                 //Read the next query, add -1 to indicate that it is a query
                 String query = "-1\t" + tuple.getSecond();
-
-                // TODO: 27/05/2023 For each query compute the ms to execute it
 
                 //Parse the query
                 String[] queryTerms = parseQuery(query, lexicon, configuration.getStemmingAndStopwordsRemoval());
@@ -162,11 +161,18 @@ public class EvaluateQueries{
                 ArrayList<Tuple<Long, Double>> result;
 
                 //Score the collection
+
+                //Retrieve the time at the beginning of the computation
+                long begin = System.currentTimeMillis();
+
                 if(queryType){
                     result = Score.scoreCollectionDisjunctive(postingLists,documentIndex, bm25scoring, false);
                 }else {
                     result = Score.scoreCollectionConjunctive(postingLists,documentIndex, bm25scoring, false);
                 }
+
+                completionTimeTot += (System.currentTimeMillis() - begin);
+                numberOfQueries++;
 
                 //Write the results in a format valid for the TREC_EVAL tool
                 for(int i = 0; i < result.size(); i++){
@@ -194,6 +200,9 @@ public class EvaluateQueries{
                 }
 
             }
+
+            System.out.println("Average completion time: " + completionTimeTot/numberOfQueries + "ms");
+            System.out.println("Number of queries: " + numberOfQueries);
 
             //Close the writer
             bufferedWriter.close();
