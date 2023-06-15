@@ -31,7 +31,7 @@ public class Parser {
         String docno;
         String text;
 
-        //Divide the line using \t as delimiter, it'll split the doc_id and the text
+        //Divide the line using \t as delimiter, it'll split the docNo and the text
         StringTokenizer stringTokenizer = new StringTokenizer(line, "\t");
 
         //Retrieve the first token, that is the docno
