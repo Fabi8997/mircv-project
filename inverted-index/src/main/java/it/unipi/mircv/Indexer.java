@@ -39,7 +39,7 @@ public class Indexer {
             "-sc : both enabled";
 
     //Percentage of memory used to define a threshold
-    static final double PERCENTAGE = 0.5;
+    static final double PERCENTAGE = 0.7;
 
     /**
      * Build an inverted index for the collection in the given path; it uses the SPIMI algorithm and build different

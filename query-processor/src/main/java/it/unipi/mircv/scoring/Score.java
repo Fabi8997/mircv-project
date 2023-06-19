@@ -251,6 +251,7 @@ public class Score {
         //Move the iterators of each posting list to the first position
         for (PostingList postingList : postingLists) {
             if (postingList.hasNext()) {
+                postingList.next();
                 orderedPostingLists.add(postingList);
             }
         }
@@ -310,7 +311,9 @@ public class Score {
                 for (PostingList postingList : postingLists) {
 
                     //Debug
-                    System.out.println(postingList.getDocId());
+                    if(debug) {
+                        System.out.println(postingList);
+                    }
                     //If the scoring is BM25
                     if (BM25) {
 
@@ -568,9 +571,6 @@ public class Score {
 
         //Traverse the array of posting list and find the maximum document id among the current doc ids
         for(PostingList postingList : postingLists){
-            if(postingList.getDocId() == 10588){
-                System.out.println("10588 found");
-            }
             if(postingList.getDocId() > max){
                 max = postingList.getDocId();
             }

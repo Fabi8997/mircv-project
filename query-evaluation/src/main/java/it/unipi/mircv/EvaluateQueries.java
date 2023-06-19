@@ -20,13 +20,13 @@ public class EvaluateQueries{
     static final String QUERY_PATH = "Dataset/queries.tsv.gz";
 
     //Path to the output file containing the results of the queries
-    static final String RESULTS_PATH = "Files/queries_results.txt";
+    static final String RESULTS_PATH = "Files/queries_results";
 
     //bm25scoring flag indicating if the scoring is bm25 (true) or tfidf (false)
-    static final Boolean bm25scoring = true;
+    static Boolean bm25scoring = true;
 
-    //flag indicating if the query is disjunctive (true) or disjunctive (false)
-    static final Boolean queryType = true;
+    //flag indicating if the query is disjunctive (true) or conjunctive (false)
+    static Boolean queryType = true;
 
     
     public static void main( String[] args )
@@ -49,15 +49,29 @@ public class EvaluateQueries{
         DocumentIndex documentIndex = new DocumentIndex();
         documentIndex.loadDocumentIndex();
 
-        evaluateQueries(getQueries(), configuration, documentIndex, lexicon);
+        //disj + bm25
+        evaluateQueries(getQueries(), configuration, documentIndex, lexicon, 0);
 
+        //conj + bm25
+        queryType = false;
+        bm25scoring = true;
+        evaluateQueries(getQueries(), configuration, documentIndex, lexicon, 1);
 
+        //conj + tfidf
+        queryType = false;
+        bm25scoring = false;
+        evaluateQueries(getQueries(), configuration, documentIndex, lexicon, 2);
+
+        //disj + tfidf
+        queryType = true;
+        bm25scoring = false;
+        evaluateQueries(getQueries(), configuration, documentIndex, lexicon, 3);
     }
 
     /**
      * Read from a file a list of queries in the format of qid\tquery and return an array of tuple containing the
      * qid and the query: (qid, query)
-     * @return an array of tuple containing the qid and the query: (qid, query)
+     * @return an ArrayList of tuple containing the qid and the query: (qid, query)
      */
     private static ArrayList<Tuple<Long, String>> getQueries(){
 
@@ -106,7 +120,7 @@ public class EvaluateQueries{
      * @param documentIndex document index containing the document info
      * @param lexicon lexicon containing the terms information
      */
-    private static void evaluateQueries(ArrayList<Tuple<Long,String>> queries, Configuration configuration, DocumentIndex documentIndex, Lexicon lexicon){
+    private static void evaluateQueries(ArrayList<Tuple<Long,String>> queries, Configuration configuration, DocumentIndex documentIndex, Lexicon lexicon, int k){
 
         //Object used to build the lexicon line into a string
         StringBuilder stringBuilder;
@@ -115,8 +129,21 @@ public class EvaluateQueries{
         BufferedWriter bufferedWriter;
 
         try {
+            String fileName = RESULTS_PATH;
+            if(k == 0){
+                fileName+= "_disj_bm25.txt";
+            }
+            else if(k == 1){
+                fileName+= "_conj_bm25.txt";
+            }
+            else if(k == 2){
+                fileName+= "_conj_tfidf.txt";
+            }
+            else{
+                fileName+= "_disj_tfidf.txt";
+            }
 
-            bufferedWriter = new BufferedWriter(new FileWriter(RESULTS_PATH,false));
+            bufferedWriter = new BufferedWriter(new FileWriter(fileName,false));
 
             double completionTimeTot = 0.0;
             int numberOfQueries = 0;
