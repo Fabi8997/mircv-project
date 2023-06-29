@@ -1,3 +1,6 @@
+Output of some queries used during during the creation of the query processor, this file is not relevant.
+
+
 ------- Conjunctive/Disjunctive -------
 ------------- Query: cat --------------
 ------------ Scoring: tfidf -----------
