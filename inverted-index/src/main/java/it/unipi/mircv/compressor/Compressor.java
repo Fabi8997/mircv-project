@@ -1,9 +1,15 @@
 package it.unipi.mircv.compressor;
+import it.unipi.mircv.beans.DocumentIndexEntry;
 import it.unipi.mircv.beans.SkipBlock;
+import it.unipi.mircv.beans.Statistics;
+import it.unipi.mircv.beans.Tuple;
 
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import static it.unipi.mircv.merger.IndexMerger.B;
+import static it.unipi.mircv.merger.IndexMerger.K1;
 import static it.unipi.mircv.utils.Utils.splitsLog128;
 
 /**
@@ -116,10 +122,10 @@ public class Compressor {
 
 
 
-    public static byte[] variableByteEncodeFreq(ArrayList<Integer> numbers, ArrayList<SkipBlock> skipBlocks){
+    public static byte[] variableByteEncodeFreq(ArrayList<Integer> frequencies, ArrayList<SkipBlock> skipBlocks, ArrayList<Long> docIds, Tuple<Double,Double> maxscores , RandomAccessFile documentIndex, Statistics statistics){
 
         //Dimension of each skip block
-        int skipBlocksLength = (int) Math.floor(Math.sqrt(numbers.size()));
+        int skipBlocksLength = (int) Math.floor(Math.sqrt(frequencies.size()));
 
         //Array to hold the bytes of the encoded numbers
         ArrayList<Byte> bytes = new ArrayList<>();
@@ -135,14 +141,35 @@ public class Compressor {
 
         Iterator<SkipBlock> skipBlocksIterator = skipBlocks.iterator();
 
+        int maxFreq = 0;
+
+        //To store the bm25 score for the current doc id
+        double tf_currentBm25;
+
+        //To store the max score for bm25
+        double tf_maxScoreBm25 = 0;
+
         //For each number in the list
-        for (Integer number : numbers) {
+        for (Integer freq : frequencies) {
+
+            //Retrieve the maximum to compute the TFIDF term upper bound
+            if(freq > maxFreq){
+                maxFreq = freq;
+            }
+
+            //Compute the bm25 scoring for the current document
+            tf_currentBm25 = freq/ (K1 * ((1-B) + B * ( (double) DocumentIndexEntry.getDocLenFromDisk(documentIndex, docIds.get(counter)) / statistics.getAvdl()) + freq));
+
+            //If the current max score for bm25 is greater than the previous score, update it
+            if(tf_currentBm25 > tf_maxScoreBm25){
+                tf_maxScoreBm25 = tf_currentBm25;
+            }
 
             //Increase the counter for the number of numbers processed
             counter++;
 
             //Encode each number and add it to the end of the array
-            for(byte b : variableByteEncodeNumber(number)){
+            for(byte b : variableByteEncodeNumber(freq)){
                 bytes.add(b);
 
                 //Increment the skip blocks length in bytes
@@ -150,7 +177,7 @@ public class Compressor {
             }
 
             //If we're at a skip position, then we complete the information about the skip previously created
-            if(counter%skipBlocksLength == 0 || counter == numbers.size()){
+            if(counter%skipBlocksLength == 0 || counter == frequencies.size()){
 
                 //We pass the current starting offset and the current number that is for sure the greater seen until now
                 if(skipBlocksIterator.hasNext()){
@@ -166,6 +193,10 @@ public class Compressor {
 
             }
         }
+
+        //Set the max score parameters
+        maxscores.setFirst((double) maxFreq);
+        maxscores.setSecond(tf_maxScoreBm25);
 
         //Array used to convert the arrayList into a byte array
         byte[] result = new byte[bytes.size()];
@@ -219,6 +250,12 @@ public class Compressor {
         return numbers;
     }
 
+    /**
+     * Decode the given array of bytes that contains a Variable Byte Encoding of a list of longs, returning the
+     * corresponding list of longs.
+     * @param bytes Compressed list of longs.
+     * @return Decompressed list of longs.
+     */
     public static ArrayList<Long> variableByteDecodeLong(byte[] bytes){
 
         //Array to hold the decoded numbers
@@ -251,39 +288,4 @@ public class Compressor {
         //Return the list of numbers
         return numbers;
     }
-
-    public static void main(String[] args) {
-
-        ArrayList<Long> numbers = new ArrayList<>();
-        numbers.add(10L); numbers.add(20L); numbers.add(30L); numbers.add(44L); numbers.add(51L); numbers.add(68L);
-        numbers.add(79L); numbers.add(813L); numbers.add(995L); numbers.add(1030L); numbers.add(11200L);
-
-        ArrayList<SkipBlock> skipBlocks = new ArrayList<SkipBlock>();
-
-        for(SkipBlock sb : skipBlocks){
-            System.out.println(sb);
-        }
-
-        /*variableByteEncodeDocId(numbers, skipBlocks);
-
-        for(SkipBlock sb : skipBlocks){
-            System.out.println(sb);
-        }
-
-        ArrayList<Integer> freq = new ArrayList<Integer>();
-        for(int i = 0; i < numbers.size(); i++){
-            freq.add(i);
-        }
-
-        System.out.println("Adding freq information\n\n");
-
-        variableByteEncodeFreq(freq, skipBlocks);
-
-        for(SkipBlock sb : skipBlocks){
-            System.out.println(sb);
-        }*/
-
-    }
-
-
 }

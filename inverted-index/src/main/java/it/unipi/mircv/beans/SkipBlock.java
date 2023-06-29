@@ -76,7 +76,6 @@ public class SkipBlock {
             skipBlocksFile.write(startFreqOffset);
             skipBlocksFile.write(skipBlockFreqLength);
             skipBlocksFile.write(maxDocId);
-
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

@@ -10,6 +10,7 @@ import it.unipi.mircv.parser.Parser;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.apache.commons.io.FileUtils;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -20,8 +21,9 @@ public class Indexer {
     static int blockNumber = 1;
 
     //Path of the dataset
-    static String COLLECTION_PATH = "Dataset/samplecompressed.tar.gz";
+    static String COLLECTION_PATH = "Dataset/collection.tar.gz";
 
+    static final String FILES_PATH = "Files/";
     //Document index file path
     static final String DOCUMENT_INDEX_PATH = "Files/document_index.txt";
 
@@ -37,7 +39,7 @@ public class Indexer {
             "-sc : both enabled";
 
     //Percentage of memory used to define a threshold
-    static final double PERCENTAGE = 0.5;
+    static final double PERCENTAGE = 0.7;
 
     /**
      * Build an inverted index for the collection in the given path; it uses the SPIMI algorithm and build different
@@ -45,7 +47,7 @@ public class Indexer {
      * @param path Path of the archive containing the collection, must be a tar.gz archive
      * @param stopwordsRemovalAndStemming true to apply the stopwords removal and stemming procedure, false otherwise
      */
-    private static void parseCollection(String path, Boolean stopwordsRemovalAndStemming){
+    private static void parseCollection(String path, Boolean stopwordsRemovalAndStemming, Boolean debug){
 
         //Path of the collection to be read
         File file = new File(path);
@@ -135,8 +137,8 @@ public class Indexer {
                         //Insert the document index row in the document index file. It's the building of the document
                         // index. The document index will be read from file in the future, the important is to build it
                         // and store it inside a file.
-                        new DocumentIndexEntry(parsedDocument.getDocNo(), parsedDocument.getDocumentLength())
-                                .writeToDisk(documentIndexFile, numberOfDocuments);
+                        DocumentIndexEntry docEntry = new DocumentIndexEntry(parsedDocument.getDocNo(), parsedDocument.getDocumentLength());
+                        docEntry.writeToDisk(documentIndexFile, numberOfDocuments);
 
                         //Check if the memory used is above the threshold defined
                         if(!isMemoryAvailable(THRESHOLD)){
@@ -163,6 +165,10 @@ public class Indexer {
                         if(numberOfDocuments%50000 == 0){
                             System.out.println("[INDEXER] " + numberOfDocuments+ " processed");
                             System.out.println("[INDEXER] Processing time: " + (System.nanoTime() - begin)/1000000000+ "s");
+                            if(debug) {
+                                System.out.println("[DEBUG] Document index entry: " + docEntry);
+                                System.out.println("[DEBUG] Memory used: " + getMemoryUsed()*100 + "%");
+                            }
                         }
                     }
                 }
@@ -193,9 +199,6 @@ public class Indexer {
                 }
 
                 System.out.println("[INDEXER] Total processing time: " + (System.nanoTime() - begin)/1000000000+ "s");
-
-                //Close the random access file of the document index
-                documentIndexFile.close();
             }
 
         } catch (IOException e) {
@@ -238,21 +241,37 @@ public class Indexer {
         return Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory() < threshold;
     }
 
-    /*For debug
+    /**
+     * Method to clear the Files folder
+     */
+    private static void clearFiles(){
+        try {
+            FileUtils.cleanDirectory(new File(FILES_PATH));
+        } catch (IOException e) {
+            System.out.println("Error deleting files inside Files folder");
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * method to get the amount of memory used with respect to the memory available to the process
+     * @return the amount of memory used with respect to the memory available to the process
+     */
     private static long getMemoryUsed(){
         Runtime rt = Runtime.getRuntime();
         long total_mem = rt.totalMemory();
         long free_mem = rt.freeMemory();
-        return total_mem - free_mem;
-    }*/
+        return  (total_mem - free_mem)/total_mem;
+    }
 
 
     public static void main(String[] args){
 
         boolean stemmingAndStopwordsRemoval = false;
         boolean compressed = false;
+        boolean debug = false;
 
-        if(args.length == 1){
+        if(args.length >= 1){
             switch (args[0]) {
                 case "-s":
                     stemmingAndStopwordsRemoval = true;
@@ -264,27 +283,44 @@ public class Indexer {
                     stemmingAndStopwordsRemoval = true;
                     compressed = true;
                     break;
+                case "-d":
+                    debug = true;
+                    break;
                 default:
                     System.err.println("Invalid command\n"+ARGS_ERROR);
                     return;
             }
-        }else if(args.length > 1){
+        }
+
+        if(args.length == 2){
+            if(args[1].equals("-d") && !args[0].equals("-d")){
+                debug = true;
+            }
+            else{
+                System.err.println("Invalid command\n"+ARGS_ERROR);
+            }
+        }
+        else if(args.length > 2){
             System.err.println("Wrong number of arguments\n"+ARGS_ERROR);
             return;
         }
 
         System.out.println("[INDEXER] Configuration\n" +
                 "\tStemming and stopwords removal: " + stemmingAndStopwordsRemoval+"\n" +
-                "\tCompression: " + compressed);
+                "\tCompression: " + compressed + "\n" +
+                "\tDebug: " + debug);
+
+        clearFiles();
 
         //Create the inverted index. Creates document index file and statistics file
-        parseCollection(COLLECTION_PATH, stemmingAndStopwordsRemoval);
+        parseCollection(COLLECTION_PATH, stemmingAndStopwordsRemoval, debug);
 
         //Merge the blocks to obtain the inverted index, compressed indicates if the compression is enabled
-        IndexMerger.merge(compressed);
+        IndexMerger.merge(compressed, debug);
 
         System.out.println("[INDEXER] Saving execution configuration...");
-        Configuration.saveConfiguration(stemmingAndStopwordsRemoval, compressed);
+        Configuration.saveConfiguration(stemmingAndStopwordsRemoval, compressed, debug);
+
         System.out.println("[INDEXER] Configuration saved");
 
     }

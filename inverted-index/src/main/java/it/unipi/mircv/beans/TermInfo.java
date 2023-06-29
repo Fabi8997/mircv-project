@@ -19,6 +19,10 @@ public class TermInfo {
     private int frequenciesBytesLength;
     private int postingListLength;
 
+    private int tfidfTermUpperBound;
+
+    private int bm25TermUpperBound;
+
     //Length in bytes of the term field
     public final static int TERM_LENGTH = 48;
 
@@ -39,9 +43,11 @@ public class TermInfo {
     public final static int OFFSET_SKIPBLOCKS_LENGTH = 8;
     public final static int NUMBER_OF_SKIPBLOCKS_LENGTH = 4;
 
-    public final static int TERM_INFO_LENGTH = TERM_LENGTH + OFFSET_DOCIDS_LENGTH + OFFSET_SKIPBLOCKS_LENGTH +NUMBER_OF_SKIPBLOCKS_LENGTH + OFFSET_FREQUENCIES_LENGTH + BYTES_DOCID_LENGTH + BYTES_FREQUENCY_LENGTH + POSTING_LIST_LENGTH + IDF_LENGTH;
+    public final static int MAXSCORE_LENGTH = 4;
 
-    public TermInfo(String term, long offsetDocId, long offsetFrequency, double idf, int docIdsBytesLength, int frequenciesBytesLength, int postingListLength, long offsetSkipBlock, int numberOfSkipBlocks) {
+    public final static int TERM_INFO_LENGTH = TERM_LENGTH + OFFSET_DOCIDS_LENGTH + OFFSET_SKIPBLOCKS_LENGTH +NUMBER_OF_SKIPBLOCKS_LENGTH + OFFSET_FREQUENCIES_LENGTH + BYTES_DOCID_LENGTH + BYTES_FREQUENCY_LENGTH + POSTING_LIST_LENGTH + IDF_LENGTH + MAXSCORE_LENGTH + MAXSCORE_LENGTH;
+
+    public TermInfo(String term, long offsetDocId, long offsetFrequency, double idf, int docIdsBytesLength, int frequenciesBytesLength, int postingListLength, long offsetSkipBlock, int numberOfSkipBlocks, int tfidfTermUpperBound, int bm25TermUpperBound) {
         this.term = term;
         this.offsetDocId = offsetDocId;
         this.offsetFrequency = offsetFrequency;
@@ -51,6 +57,8 @@ public class TermInfo {
         this.postingListLength = postingListLength;
         this.numberOfSkipBlocks = numberOfSkipBlocks;
         this.offsetSkipBlock = offsetSkipBlock;
+        this.tfidfTermUpperBound = tfidfTermUpperBound;
+        this.bm25TermUpperBound = bm25TermUpperBound;
     }
 
     public TermInfo(String term, long offsetDocId, long offsetFrequency, int postingListLength) {
@@ -114,6 +122,14 @@ public class TermInfo {
         return numberOfSkipBlocks;
     }
 
+    public int getTfidfTermUpperBound() {
+        return tfidfTermUpperBound;
+    }
+
+    public int getBm25TermUpperBound() {
+        return bm25TermUpperBound;
+    }
+
     public void set(int offsetDocId, int offsetFrequency, int postingListLength){
         this.setOffsetDocId(offsetDocId);
         this.setOffsetFrequency(offsetFrequency);
@@ -166,6 +182,9 @@ public class TermInfo {
         byte[] idf = ByteBuffer.allocate(IDF_LENGTH).putDouble(termInfo.getIdf()).array();
         byte[] offsetSkipBlocks = ByteBuffer.allocate(OFFSET_SKIPBLOCKS_LENGTH).putLong(termInfo.getOffsetSkipBlock()).array();
         byte[] numberOfSkipBlocks = ByteBuffer.allocate(NUMBER_OF_SKIPBLOCKS_LENGTH).putInt(termInfo.getNumberOfSkipBlocks()).array();
+        byte[] tfidfTermUpperBound = ByteBuffer.allocate(MAXSCORE_LENGTH).putInt(termInfo.getTfidfTermUpperBound()).array();
+        byte[] bm25TermUpperBound = ByteBuffer.allocate(MAXSCORE_LENGTH).putInt(termInfo.getBm25TermUpperBound()).array();
+
         try {
             lexiconFile.write(term);
             lexiconFile.write(offsetDocId);
@@ -176,6 +195,8 @@ public class TermInfo {
             lexiconFile.write(postingListLength);
             lexiconFile.write(offsetSkipBlocks);
             lexiconFile.write(numberOfSkipBlocks);
+            lexiconFile.write(tfidfTermUpperBound);
+            lexiconFile.write(bm25TermUpperBound);
 
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -184,14 +205,16 @@ public class TermInfo {
 
     @Override
     public String toString() {
-        return "term='" + term + '\'' +
-                ", offsetDocId=" + offsetDocId +
-                ", offsetFrequency=" + offsetFrequency +
-                ", offsetSkipBlock=" + offsetSkipBlock +
-                ", numberOfSkipBlocks=" + numberOfSkipBlocks +
-                ", idf=" + idf +
-                ", docIdsBytesLength=" + docIdsBytesLength +
-                ", frequenciesBytesLength=" + frequenciesBytesLength +
-                ", postingListLength=" + postingListLength;
+        return "\tTerm: " + term + '\n' +
+                "\toffsetDocId: " + offsetDocId + '\n' +
+                "\toffsetFrequency: " + offsetFrequency + '\n' +
+                "\toffsetSkipBlock: " + offsetSkipBlock + '\n' +
+                "\tnumberOfSkipBlocks: " + numberOfSkipBlocks + '\n' +
+                "\tidf: " + idf + '\n' +
+                "\tdocIdsBytesLength: " + docIdsBytesLength + '\n' +
+                "\tfrequenciesBytesLength: " + frequenciesBytesLength + '\n' +
+                "\tpostingListLength: " + postingListLength + '\n' +
+                "\ttfidfTermUpperBound: " + tfidfTermUpperBound + '\n' +
+                "\tbm25TermUpperBound: " + bm25TermUpperBound + '\n';
     }
 }

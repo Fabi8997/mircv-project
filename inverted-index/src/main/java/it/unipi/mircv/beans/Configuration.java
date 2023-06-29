@@ -9,6 +9,8 @@ public class Configuration {
 
     private boolean compressed;
 
+    private boolean debug;
+
     public boolean loadConfiguration() {
         try {
             //creates a new file instance
@@ -28,6 +30,9 @@ public class Configuration {
             if ((line = br.readLine()) != null) {
                 compressed = Boolean.parseBoolean(line);
             }
+            if((line = br.readLine()) != null){
+                debug = Boolean.parseBoolean(line);
+            }
 
             fr.close();
 
@@ -39,13 +44,17 @@ public class Configuration {
         return true;
     }
 
+    public void setDebug(boolean debug) {
+        this.debug = debug;
+    }
+
     /**
      * Write the configuration of the inverted index, in particular if the stemming and stopwords removal were enabled
      * and the same for compression.
      * @param stemmingAndStopwordsRemoval true if the stemming and stopwords removal were enabled during the indexing.
      * @param compressed true if the compression was enabled during the indexing.
      */
-    public static void saveConfiguration(boolean stemmingAndStopwordsRemoval, boolean compressed){
+    public static void saveConfiguration(boolean stemmingAndStopwordsRemoval, boolean compressed, boolean debug){
 
         //Object used to build the lexicon line into a string
         StringBuilder stringBuilder = new StringBuilder();
@@ -59,7 +68,8 @@ public class Configuration {
             //build the string
             stringBuilder
                     .append(stemmingAndStopwordsRemoval).append("\n")
-                    .append(compressed).append("\n");
+                    .append(compressed).append("\n")
+                    .append(debug).append("\n");
 
             //Write the string in the file
             bufferedWriter.write(stringBuilder.toString());
@@ -80,9 +90,12 @@ public class Configuration {
         return compressed;
     }
 
+    public boolean getDebug() { return debug; }
+
     @Override
     public String toString() {
         return "\tStemming and stopwords removal: " + stemmingAndStopwordsRemoval +
-                "\n\tCompressed: " + compressed;
+                "\n\tCompressed: " + compressed +
+                "\n\tDebug: " + debug;
     }
 }

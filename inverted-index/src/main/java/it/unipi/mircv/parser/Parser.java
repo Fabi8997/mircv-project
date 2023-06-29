@@ -31,9 +31,7 @@ public class Parser {
         String docno;
         String text;
 
-        // TODO: 03/11/2022 firstly check if the line is not malformed is in the format <docno>\t<text>\n
-
-        //Divide the line using \t as delimiter, it'll split the doc_id and the text
+        //Divide the line using \t as delimiter, it'll split the docNo and the text
         StringTokenizer stringTokenizer = new StringTokenizer(line, "\t");
 
         //Retrieve the first token, that is the docno
@@ -51,7 +49,6 @@ public class Parser {
             //The line is empty, or it was not possible to retrieve it
             return null;
         }
-
 
         //Remove punctuation, then split when one or more whitespace characters occur
         String[] splittedText = removePunctuation(text).split("\\s+");
@@ -123,11 +120,5 @@ public class Parser {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public static void main(String[] args) {
-        //TEST parseCollection
-        //System.out.println(Parser.parseCollection("src/main/resources/dataset/sample.tsv", false));
-
     }
 }

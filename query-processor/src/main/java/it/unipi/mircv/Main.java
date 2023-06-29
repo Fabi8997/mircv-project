@@ -20,31 +20,37 @@ public class Main
 
     public static void main( String[] args )
     {
-        System.out.println("[QUERY PROCESSOR] Loading the lexicon in memory...");
-        lexicon = new Lexicon();
-        lexicon.loadLexicon();
-        System.out.println("[QUERY PROCESSOR] Lexicon size: " + lexicon.size());
-
-        System.out.println("[QUERY PROCESSOR] Loading the document index in memory...");
-        DocumentIndex documentIndex = new DocumentIndex();
-        documentIndex.loadDocumentIndex();
-        System.out.println("[QUERY PROCESSOR] Document index size: " + documentIndex.size());
-
-        System.out.println("[QUERY PROCESSOR] Data structures loaded in memory.");
 
         Configuration configuration = new Configuration();
 
         //If no configuration is found, then no inverted index is present. The program exits.
         if(!configuration.loadConfiguration())
             return;
+
         System.out.println("[QUERY PROCESSOR] Building inverted index configuration:");
         System.out.println(configuration);
+
+        System.out.println("[QUERY PROCESSOR] Loading the lexicon in memory...");
+        lexicon = new Lexicon();
+        lexicon.loadLexicon();
+        if(configuration.getDebug()){
+            System.out.println("[DEBUG] Lexicon size: " + lexicon.size());
+        }
+
+        System.out.println("[QUERY PROCESSOR] Loading the document index in memory...");
+        DocumentIndex documentIndex = new DocumentIndex();
+        documentIndex.loadDocumentIndex();
+        if(configuration.getDebug()){
+            System.out.println("[DEBUG] Document index size: " + documentIndex.size());
+        }
+
+        System.out.println("[QUERY PROCESSOR] Data structures loaded in memory.");
 
         //Flag to indicate if the stopwords removal and stemming are enabled, this must be retrieved from the configuration
         boolean stopwordsRemovalAndStemming = configuration.getStemmingAndStopwordsRemoval();
         
         //Set the initial parameters for the query processor
-        setQueryProcessorParameters();
+        setQueryProcessorParameters(configuration);
 
         //Wait for a new command, the while is used to prevent malformed inputs
         //This must be modified in order to have also the possibility to change the query parameters
@@ -85,24 +91,13 @@ public class Main
                     //System.out.println(queryTerms[i] + ": " + postingLists[i].size());
                 }
 
-                // TODO: 19/05/2023 Test for term upper bound
-                /*PostingList ps = postingLists[0];
-                System.out.println("TFIDF upper bound for " +
-                        ps.getTermInfo().getTerm() +
-                        ": " +
-                        Score.scoreCollectionDisjunctive(new PostingList[]{ps}, documentIndex, false));
-                System.out.println("BM25 upper bound for " +
-                        ps.getTermInfo().getTerm() +
-                        ": " +
-                        Score.scoreCollectionDisjunctive(new PostingList[]{ps}, documentIndex, false));*/
-
                 ArrayList<Tuple<Long, Double>> result;
 
                 //Score the collection
                 if(queryType){
-                    result = Score.scoreCollectionDisjunctive(postingLists,documentIndex, bm25scoring);
+                    result = Score.scoreCollectionDisjunctive(postingLists,documentIndex, bm25scoring, configuration.getDebug());
                 }else {
-                    result = Score.scoreCollectionConjunctive(postingLists,documentIndex, bm25scoring);
+                    result = Score.scoreCollectionConjunctive(postingLists,documentIndex, bm25scoring, configuration.getDebug());
                 }
 
                 //Print the results in a formatted way
@@ -124,7 +119,7 @@ public class Main
             } else if(command == 1) { //Change settings command
 
                 //Request the new query processor settings then change it
-                changeSettings();
+                changeSettings(configuration);
                 System.out.println("Settings changed!");
 
             } else if (command == 2) { //Exit command
@@ -190,8 +185,8 @@ public class Main
     /**
      * Method used to change the settings of the query processor, it can be used to change the scoring function.
      */
-    private static void changeSettings(){
-        setQueryProcessorParameters();
+    private static void changeSettings(Configuration configuration){
+        setQueryProcessorParameters(configuration);
     }
 
     /**
@@ -199,9 +194,9 @@ public class Main
      * one used during the indexing phase.
      * @param query the query string to parse
      * @param stopwordsRemovalAndStemming if true remove the stopwords and applies the stemming procedure.
-     * @return the list of terms after the parsing of the query
+     * @return the array of terms after the parsing of the query
      */
-    private static String[] parseQuery(String query, boolean stopwordsRemovalAndStemming) {
+    public static String[] parseQuery(String query, boolean stopwordsRemovalAndStemming) {
 
         //Array of terms to build the result
         ArrayList<String> results = new ArrayList<>();
@@ -225,19 +220,88 @@ public class Main
         return results.toArray(new String[0]);
     }
 
-    private static void setQueryProcessorParameters(){
+    /**
+     * updates the query parameters for what regards the scoring metric (tfidf/bm25) and the type of query (conjunctive/disjunctive)
+     */
+    private static void setQueryProcessorParameters(Configuration configuration){
+        //Scanner to read from the standard input stream
         Scanner scanner = new Scanner(System.in);
-        System.out.println("\nSet the query processor parameters:");
-        System.out.println("Scoring function:\n0 -> TFIDF\n1 -> BM25");
+        boolean correctParameters = false;
 
-        //If 0 => bm25scoring is false, otherwise is true, so we'll use the bm25 scoring function
-        bm25scoring = !scanner.nextLine().equals("0");
+        while (!correctParameters) {
+            System.out.println("\nSet the query processor parameters:");
+            System.out.println("Scoring function:\n0 -> TFIDF\n1 -> BM25");
 
-        System.out.println("Query type:\n0 -> Disjunctive\n1 -> Conjunctive");
+            String result;
 
-        //If 0 => disjunctive, 1 => conjunction, queryType is true with disjunctive and false with conjunctive queries
-        queryType = scanner.nextLine().equals("0");
+            if (scanner.hasNext()) {
+                result = scanner.nextLine();
+                //If 0 => bm25scoring is false, otherwise is true, so we'll use the bm25 scoring function
+                switch (result) {
+                    case "0":
+                        bm25scoring = false;
+                        correctParameters = true;
+                        break;
+                    case "1":
+                        bm25scoring = true;
+                        correctParameters = true;
+                        break;
+                }
+            }
 
+            if(!correctParameters)
+                System.out.println("Input not valid, enter one of the following commands: ");
+        }
+
+        correctParameters = false;
+        while (!correctParameters) {
+            System.out.println("Query type:\n0 -> Disjunctive\n1 -> Conjunctive");
+
+            String result;
+
+            if (scanner.hasNext()) {
+                result = scanner.nextLine();
+                //If 0 => disjunctive, 1 => conjunction, queryType is true with disjunctive and false with conjunctive queries
+                switch (result) {
+                    case "0":
+                        queryType = true;
+                        correctParameters = true;
+                        break;
+                    case "1":
+                        queryType = false;
+                        correctParameters = true;
+                        break;
+                }
+            }
+
+            if(!correctParameters)
+                System.out.println("Input not valid, enter one of the following commands: ");
+        }
+
+        correctParameters = false;
+        while (!correctParameters) {
+            System.out.println("Do you need debug mode?\n0 -> Yes\n1 -> No");
+
+            String result;
+
+            if (scanner.hasNext()) {
+                result = scanner.nextLine();
+                //If 0 => debug mode on, 1 => debug mode off
+                switch (result) {
+                    case "0":
+                        configuration.setDebug(true);
+                        correctParameters = true;
+                        break;
+                    case "1":
+                        configuration.setDebug(false);
+                        correctParameters = true;
+                        break;
+                }
+            }
+
+            if(!correctParameters)
+                System.out.println("Input not valid, enter one of the following commands: ");
+        }
     }
 
 
