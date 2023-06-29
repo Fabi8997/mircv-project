@@ -24,12 +24,11 @@ Module that is responsible of offering the user an interface. Through this inter
 such as the scoring function to use and if the query should be conjunctive or disjunctive. Than she/he can enter the query and see the 
 top 20 results relative to it.
 
-The used algorithm to search for the top results is MaxScore
+The pruning algorithm used to speed up the search for the top results is MaxScore.
 
 
 #### Query-Evaluator module
-This module performs tests and writes the results in a format suitable for trec_eval
-
+This module performs tests on a batch of queries and writes the results in a format suitable for the trec_eval tool.
 
 ### How to compile the modules
 
