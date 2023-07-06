@@ -1,7 +1,7 @@
 # SearchEngine
 
-Project for the Multimedia Infrastructure Retrieval course at University of Pisa (A.Y. 2022/2023) realized by Fabiano Pilia and Emanuele Tinghi
-Th documents are taken from the following link: [TREC 2020 Deep Learning Track Guidelines | msmarco (microsoft.github.io)](https://microsoft.github.io/msmarco/TREC-Deep-Learning-2020)
+Project for the Multimedia Infrastructure Retrieval course at University of Pisa (A.Y. 2022/2023) realized by Fabiano Pilia and Emanuele Tinghi.
+The documents are taken from the following link: [TREC 2020 Deep Learning Track Guidelines | msmarco (microsoft.github.io)](https://microsoft.github.io/msmarco/TREC-Deep-Learning-2020)
 
 
 
