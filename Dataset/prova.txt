@@ -1,3 +1,0 @@
-prova   ciao
-prova2  ciao
-prova4  Deal with raw form with various errors (empty page, malformed lines, malformed characters).
