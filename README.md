@@ -57,8 +57,9 @@ The user can then enter the query. A list of 20 result will be shown, representi
 If the user wants to keep the previuusly inserted parameters he/she can enter another query using the right command, otherwise he/she can change the settings
 
 ### Notes
+Due to the size of the index and the collection, we've add it to the .gitignore file, so they're not present in the repository.
 
-To start the indexing, the collection must be present in the Dataset folder.
+To start the indexing, the collection must be present in the Dataset folder, the link to download it is at the beginning of this file.
 
 The index will be generated in a folder called Files.
 
