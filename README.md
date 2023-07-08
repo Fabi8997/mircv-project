@@ -3,8 +3,6 @@
 Project for the Multimedia Infrastructure Retrieval course at University of Pisa (A.Y. 2022/2023) realized by Fabiano Pilia and Emanuele Tinghi.
 The documents are taken from the following link: [TREC 2020 Deep Learning Track Guidelines | msmarco (microsoft.github.io)](https://microsoft.github.io/msmarco/TREC-Deep-Learning-2020)
 
-
-
 ### Project structure
 
 The project is composed by these main modules:
@@ -57,3 +55,11 @@ As last question the user can select if the query must be executed in debug mode
 The user can then enter the query. A list of 20 result will be shown, representing the docNo of the highest scoring documents in desconding order
 
 If the user wants to keep the previuusly inserted parameters he/she can enter another query using the right command, otherwise he/she can change the settings
+
+### Notes
+
+To start the indexing, the collection must be present in the Dataset folder.
+
+The index will be generated in a folder called Files.
+
+To bypass the indexing, the index's files can be downloaded from the link specified in the report and they must be present in the Files folder.
