@@ -54,7 +54,7 @@ As last question the user can select if the query must be executed in debug mode
 
 The user can then enter the query. A list of 20 result will be shown, representing the docNo of the highest scoring documents in desconding order
 
-If the user wants to keep the previuusly inserted parameters he/she can enter another query using the right command, otherwise he/she can change the settings
+If the user wants to keep the previously inserted parameters he/she can enter another query using the right command, otherwise he/she can change the settings
 
 ### Notes
 Due to the size of the index and the collection, we've add it to the .gitignore file, so they're not present in the repository.
